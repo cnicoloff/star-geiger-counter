@@ -21,8 +21,10 @@
 
 
 /* Initialize global variables */
-static volatile int sec;
-static volatile int min;
+static volatile int secNum;
+static volatile int sec[60] = {0};
+static volatile int minNum;
+static volatile int min[60] = {0};
 static volatile int globalCount;
 static volatile int ledTime;
 static volatile bool keepRunning;
@@ -52,8 +54,10 @@ void breakHandler(int s) {
  */
 
 void countInterrupt (void) {
-  /* Increment the global counter, currently a placeholder */
-  ++globalCount;
+  /* Increment the various counters */
+  globalCount++;
+  sec[secNum]++;
+  min[minNum]++;
 
   /* Tell the LED to light up briefly */
   ledTime += flashTime;
@@ -94,6 +98,82 @@ void *blinkLED (void *vargp) {
   pthread_exit(NULL);
 }
 
+
+/*
+ * getIndex: Get the counts for a particular index from the circular buffer.
+ *********************************************************************************
+ */
+
+int getIndex(int numIndex) {
+
+  /* We want the index that is 60 - numIndex from the end */
+  if (numIndex < 0) {
+    numIndex = 60 + numIndex;
+  }
+  else {
+    numIndex = numIndex % 60;
+  }
+
+  return numIndex;
+}
+
+/*
+ * sumCounts: Sum the number of counts across the last numSecs seconds.
+ *********************************************************************************
+ */
+
+int sumCounts(int numMins, int numSecs) {
+  int total = 0;
+
+  /* Sum minutes */
+  for (int i=0; i < numMins; i++) {
+    total += min[getIndex(minNum - i)];
+  }
+
+  /* Sum seconds */
+  for (int i=0; i < numSecs; i++) {
+    total += sec[getIndex(secNum - i)];
+  }
+
+  return total;
+
+}
+
+/*
+ * averageCounts: Average the number of counts across a specific number
+ *                of seconds.
+ *********************************************************************************
+ */
+
+float averageCounts(int numMins, int numSecs) {
+  float average;
+
+  average = (float)sumCounts(numMins, numSecs) / ((numMins * 60.0) + (float)numSecs);
+
+  return average;
+}
+
+/*
+ * cpmTouSv: Convert cpm (counts per minute) to microSieverts/hour
+ *********************************************************************************
+ */
+float cpmTouSv(void) {
+
+  /* Conversion factor for SBM-20 tube */
+  float factor = 0.0057;
+
+  float uSv;
+  float cpm;
+
+  /* Three minute moving average */
+  cpm = averageCounts(3, 0) * 60.0;
+
+  /* Multiply by conversion factor  */
+  uSv = factor * cpm;
+
+  return uSv;
+}
+
 /*
  * count: Thread to handle count_related activities.
  *********************************************************************************
@@ -103,22 +183,22 @@ void *count (void *vargp) {
 
   while (keepRunning) {
     sleep(1);
-    sec++;
 
-    if ((sec != 0) && (sec % 10 == 0)) {
-      printf("%d:%d Counter: %5d\n", min, sec, globalCount);
+    secNum++;
+
+    if (secNum % 60 == 0) {
+
+      minNum++;
+      if (minNum % 60 == 0) {
+        minNum = 0;
+      }
+
+      secNum = 0;
+      min[minNum] = 0;
     }
 
-    /* If a minute has passed... */
-    if (sec % 60 == 0) {
-      /* Write some output */
-      /* fprintf(opf, "%d Counter: %5d\n", min, globalCount); */
+    sec[secNum] = 0;
 
-      /* Increment the minute counter and reset the 
-       * second counter */
-      min++;
-      sec = 0;
-    }
   }
   pthread_exit(NULL);
 }
@@ -183,9 +263,14 @@ int main (void)
   pullUpDnControl(geigerPin, PUD_OFF);
 
   /* Initialize counting variables */
-  min = 0;
-  sec = 0;
+  minNum = -1;
+  secNum = 0;
   globalCount = 0;
+
+  /* Initialize the counting arrays */
+  for (int i=0; i < 60; i++) {
+    sec[i] = min[i] = 0;
+  }
 
   /* Set up the counting thread */
   pthread_t count_id;
@@ -200,6 +285,18 @@ int main (void)
   while (keepRunning) {
     /* Sleep for 1 s */
     sleep(1);
+
+    /* Write some output */
+    float temp2 = cpmTouSv();
+
+    if (secNum % 30 == 0) {
+      //printf("%0d:%0d Counter: %5d\n", minNum, secNum, sumCounts(10));
+      printf("uSv/hr: %f\n", temp2);
+    }
+
+    /* If a minute has passed... */
+    if (secNum % 60 == 0) {
+    }
   }
 
   /* Close the output file */

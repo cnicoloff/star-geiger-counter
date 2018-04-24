@@ -160,13 +160,15 @@ float averageCounts(int numMins, int numSecs) {
 float cpmTouSv(void) {
 
   /* Conversion factor for SBM-20 tube */
-  float factor = 0.0057;
+  //float factor = 0.0057;
+  /* Conversion factor from uRADMonitor */ 
+  float factor = 0.006315;
 
   float uSv;
   float cpm;
 
   /* Three minute moving average */
-  cpm = averageCounts(3, 0) * 60.0;
+  cpm = averageCounts(0, 40) * 60.0;
 
   /* Multiply by conversion factor  */
   uSv = factor * cpm;
@@ -289,7 +291,7 @@ int main (void)
     /* Write some output */
     float temp2 = cpmTouSv();
 
-    if (secNum % 30 == 0) {
+    if (secNum % 20 == 0) {
       //printf("%0d:%0d Counter: %5d\n", minNum, secNum, sumCounts(10));
       printf("uSv/hr: %f\n", temp2);
     }

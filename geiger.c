@@ -23,11 +23,11 @@
 /* Initialize global variables */
 static int size = 60;               // Array size
 static volatile int secNum;         // Which index in the seconds array
-static volatile int sec[size]={0};  // Array of collected counts per second
+static volatile int sec[60]={0};  // Array of collected counts per second
 static volatile int minNum;         // Which index of the minutes array
-static volatile int min[size]={0};  // Array of collected counts per minute
+static volatile int min[60]={0};  // Array of collected counts per minute
 static volatile int hourNum;        // Which index of the hours array
-static volatile int hour[size]={0}; // Array of collected counts per hour
+static volatile int hour[60]={0}; // Array of collected counts per hour
 static volatile int elapsed;        // How many seconds have elapsed
 
 static volatile int ledTime;      // How much time is left to light LED
@@ -134,15 +134,10 @@ int getIndex(int numIndex) {
  */
 
 int sumCounts(int numSecs) {
-    
-  /* Don't try to sum more seconds than we have data for */
-  if (numsecs > elapsed) {
-    numsecs = elapsed;
-  }
-  
+
   int total = 0;
-  int numHours = numSecs % 3600;                // Convert seconds to hours
-  int numMins = (numSecs - numHours * 60) % 60; // Convert seconds to minutes
+  int numHours = numSecs / 3600;                           // Convert seconds to hours
+  int numMins = (numSecs - (numHours * 3600)) / 60;        // Convert seconds to minutes
   numSecs = numSecs - (numMins * 60) - (numHours * 3600);  // Remaining seconds
 
   /* Sum hours */
@@ -171,12 +166,7 @@ int sumCounts(int numSecs) {
  */
 
 float averageCounts(int numSecs) {
-    
-  /* Don't try to average more seconds than we have data for */
-  if (numsecs > elapsed) {
-    numsecs = elapsed;
-  }
-    
+
   /* Sum the counts, divide by the number of seconds */
   return ((float)sumCounts(numSecs) / (float)numSecs);
 }
@@ -196,7 +186,7 @@ float cpmTouSv(int numSecs) {
    * From https://www.uradmonitor.com/topic/hardware-conversion-factor/
    * This one gave results consistent with another portable radiation
    * monitor I had available (within 1-2%).
-   */ 
+   */
   float factor = 0.006315;
 
   float uSv;
@@ -221,7 +211,7 @@ void *count (void *vargp) {
   while (keepRunning) {
     /* FIXME: Make this more accurate */
     sleep(1);
-    
+
     /* Increment the elapsed time counter */
     elapsed++;
 
@@ -230,23 +220,23 @@ void *count (void *vargp) {
 
     /* Roll the seconds buffer */
     if (secNum % size == 0) {
-        
+
       /* Increment the minutes counter */
       minNum++;
 
       /* Roll the minutes buffer */
       if (minNum % size == 0) {
-          
+
         /* Increment the hours counter */
         hourNum++;
-        
+
         /* Roll the hours buffer */
         if (hourNum % size == 0) {
-          hourNum = 0;  
+          hourNum = 0;
         }
-        
+
         minNum = 0;
-        
+
         /* Initialize the current hour to zero */
         hour[hourNum] = 0;
       }
@@ -260,7 +250,7 @@ void *count (void *vargp) {
     sec[secNum] = 0;
 
   }
-  
+
   pthread_exit(NULL);
 }
 
@@ -348,7 +338,7 @@ int main (void)
     sleep(1);
 
     /* Write some output */
-    float temp2 = cpmTouSv(40);
+    float temp2 = cpmTouSv(120);
 
     if (secNum % 20 == 0) {
       //printf("%0d:%0d Counter: %5d\n", minNum, secNum, sumCounts(10));

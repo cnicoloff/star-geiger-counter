@@ -32,10 +32,10 @@ static volatile int elapsed;        // How many seconds have elapsed
 
 static volatile int ledTime;      // How much time is left to light LED
 static volatile bool keepRunning; // Signals when to exit
-static volatile bool hvOn;        // Signals when to turn the HV on
+static volatile bool turnHVOn;    // Signals when to turn the HV on
 
-/* Initialize the GPIO pins 
- * Note that these are not the BCM GPIO pin 
+/* Initialize the GPIO pins
+ * Note that these are not the BCM GPIO pin
  * numbers or the physical header pin numbers!
  * Conversion table is at http://wiringpi.com/pins/
  */
@@ -44,7 +44,7 @@ static int geigerPin = 5;
 static int gatePin = 6;
 
 /* How long to flash the LED when a count is
- * recorded, in milliseconds 
+ * recorded, in milliseconds
  */
 static int flashTime = 10;  // ms
 
@@ -177,11 +177,11 @@ float averageCounts(int numSecs) {
  */
 float cpmTouSv(int numSecs) {
 
-  /* Conversion factor for SBM-20 tube 
+  /* Conversion factor for SBM-20 tube
    * From https://sites.google.com/site/diygeigercounter/gm-tubes-supported
    */
   //float factor = 0.0057;
-  
+
   /* Conversion factor for SBM-20 tube
    * From https://www.uradmonitor.com/topic/hardware-conversion-factor/
    * This one gave results consistent with another portable radiation
@@ -255,6 +255,22 @@ void *count (void *vargp) {
 }
 
 /*
+ * post: Thread to perform a power on self-test.
+ *****************************************************************************
+ */
+
+void *post (void *vargp) {
+
+  printf("POST for next 10 seconds...\n");
+  turnHVOn = true;
+  sleep(10);
+  turnHVOn = false;
+  printf("POST complete!\n");
+
+  pthread_exit(NULL);
+}
+
+/*
  *****************************************************************************
  * main
  *****************************************************************************
@@ -284,8 +300,9 @@ int main (void)
   /* Run forever unless halted */
   keepRunning = true;
 
-  /* Turn HV On */
-  hvOn = true;
+  /* HV is off by default */
+  turnHVOn = false;
+  int hvIsOn = false;
 
   /* Set up the attribute to allow our threads to run detached */
   pthread_attr_t attr;
@@ -327,13 +344,25 @@ int main (void)
   pthread_t count_id;
   pthread_create(&count_id, &attr, count, NULL);
 
-  if (hvOn) {
-    /* Turn on HV */
-    digitalWrite(gatePin, HIGH);
-  }
+  /* Set up the counting thread */
+  pthread_t post_id;
+  pthread_create(&post_id, &attr, post, NULL);
 
  /* Loop forever or until CTRL-C */
   while (keepRunning) {
+
+    /* Turn HV on */
+    if ((turnHVOn) && (!hvIsOn)) {
+      digitalWrite(gatePin, HIGH);
+      hvIsOn = true;
+      printf("HV is on!\n");
+    }
+    else if ((!turnHVOn) && (hvIsOn)) {
+      digitalWrite(gatePin, LOW);
+      hvIsOn = false;
+      printf("HV is off.\n");
+    }
+
     /* Sleep for 1 s */
     sleep(1);
 

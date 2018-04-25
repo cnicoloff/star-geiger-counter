@@ -1,11 +1,11 @@
 
 /*
- ***********************************************************************
+ *****************************************************************************
  * geiger.c:  interfaces a Raspberry Pi Zero with the custom Geiger
- *                 circuit inside STAR.
+ *            circuit inside STAR.
  *
  * Catherine Nicoloff, April 2018
- ***********************************************************************
+ *****************************************************************************
  */
 
 #include <stdio.h>
@@ -21,25 +21,36 @@
 
 
 /* Initialize global variables */
-static volatile int secNum;
-static volatile int sec[60] = {0};
-static volatile int minNum;
-static volatile int min[60] = {0};
-static volatile int globalCount;
-static volatile int ledTime;
-static volatile bool keepRunning;
-static volatile bool hvOn;
+static int size = 60;               // Array size
+static volatile int secNum;         // Which index in the seconds array
+static volatile int sec[size]={0};  // Array of collected counts per second
+static volatile int minNum;         // Which index of the minutes array
+static volatile int min[size]={0};  // Array of collected counts per minute
+static volatile int hourNum;        // Which index of the hours array
+static volatile int hour[size]={0}; // Array of collected counts per hour
+static volatile int elapsed;        // How many seconds have elapsed
 
-/* Initialize the GPIO pins */
+static volatile int ledTime;      // How much time is left to light LED
+static volatile bool keepRunning; // Signals when to exit
+static volatile bool hvOn;        // Signals when to turn the HV on
+
+/* Initialize the GPIO pins 
+ * Note that these are not the BCM GPIO pin 
+ * numbers or the physical header pin numbers!
+ * Conversion table is at http://wiringpi.com/pins/
+ */
 static int ledPin = 4;
-static int geigerPin = 3;
+static int geigerPin = 5;
 static int gatePin = 6;
 
-static int flashTime = 10;
+/* How long to flash the LED when a count is
+ * recorded, in milliseconds 
+ */
+static int flashTime = 10;  // ms
 
 /*
  * breakHandler: Captures CTRL-C so we can shut down cleanly.
- *********************************************************************************
+ *****************************************************************************
  */
 
 void breakHandler(int s) {
@@ -50,22 +61,22 @@ void breakHandler(int s) {
 
 /*
  * countInterrupt: Runs when a count is detected.
- *********************************************************************************
+ *****************************************************************************
  */
 
 void countInterrupt (void) {
   /* Increment the various counters */
-  globalCount++;
   sec[secNum]++;
   min[minNum]++;
+  hour[hourNum]++;
 
-  /* Tell the LED to light up briefly */
+  /* Tell the LED to light up */
   ledTime += flashTime;
 }
 
 /*
  * blinkLED: Thread to handle LED blinking.
- *********************************************************************************
+ *****************************************************************************
  */
 
 void *blinkLED (void *vargp) {
@@ -73,7 +84,7 @@ void *blinkLED (void *vargp) {
   /* Set up nanosleep() */
   struct timespec tim;
   tim.tv_sec = 0;
-  tim.tv_nsec = flashTime * 1000000;
+  tim.tv_nsec = flashTime * 1000000;  // Convert from ns to ms
 
   while (keepRunning) {
 
@@ -101,17 +112,17 @@ void *blinkLED (void *vargp) {
 
 /*
  * getIndex: Get the counts for a particular index from the circular buffer.
- *********************************************************************************
+ *****************************************************************************
  */
 
 int getIndex(int numIndex) {
 
-  /* We want the index that is 60 - numIndex from the end */
+  /* Make sure our number is a valid index */
+  numIndex = numIndex % size;
+
+  /* If it's negative, count backwards from the end of the array */
   if (numIndex < 0) {
-    numIndex = 60 + numIndex;
-  }
-  else {
-    numIndex = numIndex % 60;
+    numIndex = size + numIndex;
   }
 
   return numIndex;
@@ -119,11 +130,25 @@ int getIndex(int numIndex) {
 
 /*
  * sumCounts: Sum the number of counts across the last numSecs seconds.
- *********************************************************************************
+ *****************************************************************************
  */
 
-int sumCounts(int numMins, int numSecs) {
+int sumCounts(int numSecs) {
+    
+  /* Don't try to sum more seconds than we have data for */
+  if (numsecs > elapsed) {
+    numsecs = elapsed;
+  }
+  
   int total = 0;
+  int numHours = numSecs % 3600;                // Convert seconds to hours
+  int numMins = (numSecs - numHours * 60) % 60; // Convert seconds to minutes
+  numSecs = numSecs - (numMins * 60) - (numHours * 3600);  // Remaining seconds
+
+  /* Sum hours */
+  for (int i=0; i < numHours; i++) {
+    total += hour[getIndex(hourNum - i)];
+  }
 
   /* Sum minutes */
   for (int i=0; i < numMins; i++) {
@@ -142,33 +167,43 @@ int sumCounts(int numMins, int numSecs) {
 /*
  * averageCounts: Average the number of counts across a specific number
  *                of seconds.
- *********************************************************************************
+ *****************************************************************************
  */
 
-float averageCounts(int numMins, int numSecs) {
-  float average;
-
-  average = (float)sumCounts(numMins, numSecs) / ((numMins * 60.0) + (float)numSecs);
-
-  return average;
+float averageCounts(int numSecs) {
+    
+  /* Don't try to average more seconds than we have data for */
+  if (numsecs > elapsed) {
+    numsecs = elapsed;
+  }
+    
+  /* Sum the counts, divide by the number of seconds */
+  return ((float)sumCounts(numSecs) / (float)numSecs);
 }
 
 /*
  * cpmTouSv: Convert cpm (counts per minute) to microSieverts/hour
- *********************************************************************************
+ *****************************************************************************
  */
-float cpmTouSv(void) {
+float cpmTouSv(int numSecs) {
 
-  /* Conversion factor for SBM-20 tube */
+  /* Conversion factor for SBM-20 tube 
+   * From https://sites.google.com/site/diygeigercounter/gm-tubes-supported
+   */
   //float factor = 0.0057;
-  /* Conversion factor from uRADMonitor */ 
+  
+  /* Conversion factor for SBM-20 tube
+   * From https://www.uradmonitor.com/topic/hardware-conversion-factor/
+   * This one gave results consistent with another portable radiation
+   * monitor I had available (within 1-2%).
+   */ 
   float factor = 0.006315;
 
   float uSv;
   float cpm;
 
-  /* Three minute moving average */
-  cpm = averageCounts(0, 40) * 60.0;
+  /* Moving average of counts */
+  cpm = averageCounts(numSecs) * 60.0;
 
   /* Multiply by conversion factor  */
   uSv = factor * cpm;
@@ -178,37 +213,61 @@ float cpmTouSv(void) {
 
 /*
  * count: Thread to handle count_related activities.
- *********************************************************************************
+ *****************************************************************************
  */
 
 void *count (void *vargp) {
 
   while (keepRunning) {
+    /* FIXME: Make this more accurate */
     sleep(1);
+    
+    /* Increment the elapsed time counter */
+    elapsed++;
 
+    /* Increment the seconds counter */
     secNum++;
 
-    if (secNum % 60 == 0) {
-
+    /* Roll the seconds buffer */
+    if (secNum % size == 0) {
+        
+      /* Increment the minutes counter */
       minNum++;
-      if (minNum % 60 == 0) {
+
+      /* Roll the minutes buffer */
+      if (minNum % size == 0) {
+          
+        /* Increment the hours counter */
+        hourNum++;
+        
+        /* Roll the hours buffer */
+        if (hourNum % size == 0) {
+          hourNum = 0;  
+        }
+        
         minNum = 0;
+        
+        /* Initialize the current hour to zero */
+        hour[hourNum] = 0;
       }
 
       secNum = 0;
+      /* Initialize the current minute to zero */
       min[minNum] = 0;
     }
 
+    /* Initialize the current second to zero */
     sec[secNum] = 0;
 
   }
+  
   pthread_exit(NULL);
 }
 
 /*
- *********************************************************************************
+ *****************************************************************************
  * main
- *********************************************************************************
+ *****************************************************************************
  */
 
 int main (void)
@@ -265,13 +324,13 @@ int main (void)
   pullUpDnControl(geigerPin, PUD_OFF);
 
   /* Initialize counting variables */
+  hourNum = -1;
   minNum = -1;
   secNum = 0;
-  globalCount = 0;
 
   /* Initialize the counting arrays */
-  for (int i=0; i < 60; i++) {
-    sec[i] = min[i] = 0;
+  for (int i=0; i < size; i++) {
+    sec[i] = min[i] = hour[i] = 0;
   }
 
   /* Set up the counting thread */
@@ -289,7 +348,7 @@ int main (void)
     sleep(1);
 
     /* Write some output */
-    float temp2 = cpmTouSv();
+    float temp2 = cpmTouSv(40);
 
     if (secNum % 20 == 0) {
       //printf("%0d:%0d Counter: %5d\n", minNum, secNum, sumCounts(10));

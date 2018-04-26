@@ -1,4 +1,3 @@
-
 /*
  *****************************************************************************
  * geiger.c:  interfaces a Raspberry Pi Zero with the custom Geiger
@@ -23,28 +22,7 @@
 #include <math.h>
 #include <pthread.h>
 #include <wiringPi.h>
-#include <wiringPiSPI.h>
-
-using namespace std;
-
-/* Definitions to support MS5607 altimeter */
-#define TRUE 1
-#define FALSE 0
-
-#define F_CPU 4000000UL     // 4MHz XTAL
-#define CMD_RESET 0x1E      // ADC reset command
-#define CMD_ADC_READ 0x00   // ADC read command
-#define CMD_ADC_CONV 0x40   // ADC conversion command
-#define CMD_ADC_D1 0x00     // ADC D1 conversion
-#define CMD_ADC_D2 0x10     // ADC D2 conversion
-#define CMD_ADC_256 0x00    // ADC OSR=256
-#define CMD_ADC_512 0x02    // ADC OSR=512
-#define CMD_ADC_1024 0x04   // ADC OSR=1024
-#define CMD_ADC_2048 0x06   // ADC OSR=2056
-#define CMD_ADC_4096 0x08   // ADC OSR=4096
-#define CMD_PROM_RD 0xA0    // Prom read command
-#define csb_hi() (_SFR_BYTE(PORTA) &= ~_BV(3))  // setting CSB low
-#define csb_lo() (_SFR_BYTE(PORTA) |= _BV(3))   // setting CSB high 
+#include "MS5607.h"
 
 /* Initialize global variables */
 static int size = 60;             // Array size
@@ -60,8 +38,6 @@ static volatile int ledTime;      // How much time is left to light LED
 static volatile bool keepRunning; // Signals when to exit
 static volatile bool turnHVOn;    // Signals when to turn the HV on
 static volatile bool HVisOn;      // Keeps track of when HV is on/off
-
-static const int CHANNEL = 0;     // SPI channel
 
 /* Initialize the GPIO pins
  * Note that these are not the BCM GPIO pin
@@ -87,16 +63,6 @@ void breakHandler(int s) {
   /* Tell all loops and threads to exit */
   keepRunning = false;
 }
-
-/********************************************************
- * MS5607: Send 8 bit using SPI hardware interface
- ********************************************************
- */
-void spi_send(char cmd)
-{
- SPDR= cmd; // put the byte in the SPI hardware buffer and start sending
- while (bit_is_clear(SPSR, 7)); // wait that the data is sent
-} 
 
 /*
  * countInterrupt: Runs when a count is detected.
@@ -410,10 +376,15 @@ int main (void)
   /* Set up the counting thread */
   pthread_t post_id;
   pthread_create(&post_id, &attr, post, NULL);
-  
-  int fd = wiringPiSPISetup(CHANNEL, 500000);
-  
-  printf("SPI init result: %d\n", fd)
+
+  int ret = altimeterInit();
+  printf("SPI init result: %d\n", ret);
+  altimeterReset();
+
+  for (int i=0; i < 8; i++) {
+    ret = altimeterCalibration(i);
+    printf("Calibration result %d: %d\n", i, ret);
+  }
 
  /* Loop forever or until CTRL-C */
   while (keepRunning) {

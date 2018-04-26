@@ -18,6 +18,14 @@
 #include <time.h>
 #include <pthread.h>
 #include <wiringPi.h>
+#include <wiringPiSPI.h>
+
+#define TRUE 1
+#define FALSE 0
+
+#define F_CPU 4000000UL  // 4MHz XTAL
+#define CMD_RESET 0x1E   // ADC reset command
+#define 
 
 
 /* Initialize global variables */

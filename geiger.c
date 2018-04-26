@@ -21,18 +21,19 @@
 
 
 /* Initialize global variables */
-static int size = 60;               // Array size
-static volatile int secNum;         // Which index in the seconds array
+static int size = 60;             // Array size
+static volatile int secNum;       // Which index in the seconds array
 static volatile int sec[60]={0};  // Array of collected counts per second
-static volatile int minNum;         // Which index of the minutes array
+static volatile int minNum;       // Which index of the minutes array
 static volatile int min[60]={0};  // Array of collected counts per minute
-static volatile int hourNum;        // Which index of the hours array
+static volatile int hourNum;      // Which index of the hours array
 static volatile int hour[60]={0}; // Array of collected counts per hour
-static volatile int elapsed;        // How many seconds have elapsed
+static volatile int elapsed;      // How many seconds have elapsed
 
 static volatile int ledTime;      // How much time is left to light LED
 static volatile bool keepRunning; // Signals when to exit
 static volatile bool turnHVOn;    // Signals when to turn the HV on
+static volatile bool HVisOn;      // Keeps track of when HV is on/off
 
 /* Initialize the GPIO pins
  * Note that these are not the BCM GPIO pin
@@ -271,6 +272,30 @@ void *post (void *vargp) {
 }
 
 /*
+ * turnHVOn: Turns HV on and logs it.
+ *****************************************************************************
+ */
+
+void HVOn (void) {
+
+  digitalWrite(gatePin, HIGH);
+  HVisOn = true;
+  printf("HV is on!\n");
+}
+
+/*
+ * turnHVOff: Turns HV off and logs it.
+ *****************************************************************************
+ */
+
+void HVOff (void) {
+
+  digitalWrite(gatePin, LOW);
+  HVisOn = false;
+  printf("HV is off.\n");
+}
+
+/*
  *****************************************************************************
  * main
  *****************************************************************************
@@ -302,7 +327,7 @@ int main (void)
 
   /* HV is off by default */
   turnHVOn = false;
-  int hvIsOn = false;
+  HVisOn = false;
 
   /* Set up the attribute to allow our threads to run detached */
   pthread_attr_t attr;
@@ -352,15 +377,12 @@ int main (void)
   while (keepRunning) {
 
     /* Turn HV on */
-    if ((turnHVOn) && (!hvIsOn)) {
-      digitalWrite(gatePin, HIGH);
-      hvIsOn = true;
-      printf("HV is on!\n");
+    if ((turnHVOn) && (!HVisOn)) {
+      HVOn();
     }
-    else if ((!turnHVOn) && (hvIsOn)) {
-      digitalWrite(gatePin, LOW);
-      hvIsOn = false;
-      printf("HV is off.\n");
+    /* Turn HV off */
+    else if ((!turnHVOn) && (HVisOn)) {
+      HVOff();
     }
 
     /* Sleep for 1 s */
@@ -372,6 +394,7 @@ int main (void)
     if (secNum % 20 == 0) {
       //printf("%0d:%0d Counter: %5d\n", minNum, secNum, sumCounts(10));
       printf("uSv/hr: %f\n", temp2);
+      turnHVOn = true;
     }
 
     /* If a minute has passed... */
@@ -384,7 +407,7 @@ int main (void)
   /* Clean up */
   pthread_attr_destroy(&attr);
   /* Turn off HV */
-  digitalWrite(gatePin, LOW);
+  HVOff();
   /* Turn off LED */
   digitalWrite(ledPin, LOW);
 

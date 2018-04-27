@@ -363,6 +363,7 @@ int main (void)
   hourNum = -1;
   minNum = -1;
   secNum = 0;
+  float uSv = 0.0;
 
   /* Initialize the counting arrays */
   for (int i=0; i < size; i++) {
@@ -377,18 +378,27 @@ int main (void)
   pthread_t post_id;
   pthread_create(&post_id, &attr, post, NULL);
 
-  int ret = altimeterInit();
-  printf("SPI init result: %d\n", ret);
-  altimeterReset();
+  /* Initialize the altimeter */
+  double T = 0.0;
+  double P = 0.0;
 
-  unsigned int C[8]; // calibration coefficients
-  for (int i=0; i < 8; i++) {
-    C[i] = altimeterCalibration(i);
-    printf("Calibration result %d: %d\n", i, C[i]);
+  int ret = altimeterInit();
+  if (ret < 0) {
+    printf("SPI init failed!\n");
   }
-  
-  unsigned char n_crc; // crc value of the prom
-  n_crc = crc4(C); 
+  else {
+    altimeterReset();
+  }
+
+  /* Altimeter calibration coefficients */
+  unsigned int coeffs[8] = {0};
+  for (int i=0; i < 8; i++) {
+    coeffs[i] = altimeterCalibration(i);
+    //printf("Calibration result %d: %d\n", i, coeffs[i]);
+  }
+
+  // CRC value of the coefficients
+  unsigned char n_crc = crc4(coeffs);
 
  /* Loop forever or until CTRL-C */
   while (keepRunning) {
@@ -404,17 +414,14 @@ int main (void)
 
     /* Sleep for 1 s */
     sleep(1);
-    
-    double T = firstOrderT();
-    double P = firstOrderP();
-    
-    printf("T: %d, P: %d", T, P);
-
-    /* Write some output */
-    float temp2 = cpmTouSv(120);
 
     if (secNum % 20 == 0) {
-      printf("uSv/hr: %f\n", temp2);
+      uSv = cpmTouSv(120);
+      T = firstOrderT(coeffs);
+      P = firstOrderP(coeffs);
+
+      /* Write some output */
+      printf("uSv/hr: %f, T: %f C, P: %f mbar\n", uSv, T, P);
       turnHVOn = true;
     }
 

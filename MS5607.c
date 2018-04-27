@@ -197,24 +197,49 @@ unsigned long readTUncompensated(void) {
 }
 
 /*
+ * calcDT: Calculate the difference between the actual and the reference
+ *         temperature
+ *****************************************************************************
+ */
+double calcDT(unsigned int coeffs[]) {
+  return (readTUncompensated() - coeffs[5] * pow(2,8));
+}
+
+/*
+ * calcOffset: Calculate the offset at the actual temperature
+ *****************************************************************************
+ */
+double calcOffset(unsigned int coeffs[]) {
+  double dT = calcDT(coeffs);
+  return (coeffs[2] * pow(2,17)) + (dT * coeffs[4]) / pow(2,6);
+}
+
+/*
+ * calcSens: Calculate the sensitivity at the actual temperature
+ *****************************************************************************
+ */
+double calcSens(unsigned int coeffs[]) {
+  double dT = calcDT(coeffs);
+  return (coeffs[1] * pow(2,16)) + (dT * coeffs[3]) / pow(2,7);
+}
+
+/*
  * firstOrderP: Calculate the first order pressure using the MS5607 1st
  *              order algorithm.
  *****************************************************************************
  */
 double firstOrderP(unsigned int coeffs[]) {
   double P = 0.0; // compensated temperature value
-  double dT;      // difference between actual and measured temperature
   double offset;  // offset at actual temperature
   double sens;    // sensitivity at actual temperature
 
   unsigned long pRaw = readPUncompensated();
-  unsigned long tRaw = readTUncompensated();
 
-  dT = tRaw - coeffs[5] * pow(2,8);
-  offset= coeffs[2] * pow(2,17) + dT * coeffs[4] / pow(2,6);
-  sens = coeffs[1] * pow(2,16) + dT * coeffs[3] / pow(2,7);
+  offset = calcOffset(coeffs);
+  sens = calcSens(coeffs);
 
   // calculate 1st order pressure (MS5607 1st order algorithm)
+
   P = (((pRaw * sens) / pow(2,21) - offset) / pow(2,15)) / 100;
 
   return P;
@@ -229,9 +254,7 @@ double firstOrderT(unsigned int coeffs[]) {
   double T = 0.0; // compensated temperature value
   double dT;      // difference between actual and measured temperature
 
-  unsigned long tRaw = readTUncompensated();
-
-  dT = tRaw - coeffs[5] * pow(2,8);
+  dT = calcDT(coeffs);
 
   // calculate 1st order temperature (MS5607 1st order algorithm)
   T = (2000 + (dT * coeffs[6]) / pow(2,23)) / 100;
@@ -240,7 +263,7 @@ double firstOrderT(unsigned int coeffs[]) {
 }
 
 /*
- * secondOrderT: Calculate the second order temperature using the MS5607 2nd
+ * secondOrderP: Calculate the second order pressure using the MS5607 2nd
  *               order non-linear algorithm.
  *****************************************************************************
  */
@@ -253,30 +276,30 @@ double secondOrderP(unsigned int coeffs[]) {
   double sens, sens2 = 0.0;           // sensitivity at actual temperature
 
   unsigned long pRaw = readPUncompensated();
-  unsigned long tRaw = readTUncompensated();
 
-  dT = tRaw - coeffs[5] * pow(2,8);
+  offset = calcOffset(coeffs);
+  sens = calcSens(coeffs);
+  dT = calcDT(coeffs);
 
   // Temperature less than 20 C
-  if (temp < 20) {
+  if (temp < 20.0) {
     temp2 = pow(dT,2) / pow(2,31);
     offset2 = 61 * pow((temp - 2000),2) / pow(2,4);
     sens2 = 2 * pow((temp - 2000),2);
+
     // Temperature less than -15 C
     if (temp < -15) {
       offset2 = offset2 + 15 * pow((temp + 1500),2);
       sens2 = sens2 + 8 * pow((temp + 1500), 2);
     }
   }
+
   // Temperature greater than 20 C
   else {
     temp2 = 0;
     offset2 = 0;
     sens2 = 0;
   }
-
-  offset= coeffs[2] * pow(2,17) + dT * coeffs[4] / pow(2,6);
-  sens = coeffs[1] * pow(2,16) + dT * coeffs[3] / pow(2,7);
 
   temp = temp - temp2;
   offset = offset - offset2;
@@ -288,3 +311,18 @@ double secondOrderP(unsigned int coeffs[]) {
   return P;
 }
 
+/*
+ * tempCtoF: Convert C to F
+ *****************************************************************************
+ */
+float CtoF(double temp) {
+  return temp * 9.0/5.0 + 32;
+}
+
+/*
+ * mbartoInHg: Convert pressure from mbar to in hg
+ *****************************************************************************
+ */
+float mbartoInHg(double pressure) {
+  return pressure * 0.02953;
+}

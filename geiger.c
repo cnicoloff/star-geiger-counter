@@ -339,8 +339,8 @@ int main (void)
 
   wiringPiSetup();           // Initialize wiringPi
 
-  turnHVOn = false;          // HV is off by default
-  bool HVisOn = false;       // Initialize HV tracking boolean
+  turnHVOn = false;          // Do not turn HV on at this time
+  HVisOn = false;            // HV is off by default
   pinMode(gatePin, OUTPUT);  // Set up MOSFET gate pin
 
   LEDTime = 0;               // Initialize the LED
@@ -371,9 +371,12 @@ int main (void)
   pthread_t post_id;   // Set up the POST thread
   pthread_create(&post_id, &attr, post, NULL);
 
+  sleep(1);  // Sleep 1s just so we don't power everything on at once
+
   // Initialize the altimeter variables
   double T = 0.0;
   double P = 0.0;
+  double PP = 0.0;
 
   // Initialize the altimeter
   if (altimeterInit() < 0)
@@ -385,6 +388,7 @@ int main (void)
   unsigned int coeffs[8] = {0};
   for (int i=0; i < 8; i++) {
     coeffs[i] = altimeterCalibration(i);
+    printf("%d: %d\n", i, coeffs[i]);
   }
 
   // CRC value of the coefficients
@@ -408,10 +412,11 @@ int main (void)
     if (secNum % 20 == 0) {
       uSv = cpmTouSv(120);
       T = firstOrderT(coeffs);
-      P = secondOrderP(coeffs);
+      P = firstOrderP(coeffs);
+      PP = secondOrderP(coeffs);
 
       // Write some output
-      printf("uSv/hr: %f, T: %f C, P: %f mbar\n", uSv, T, P);
+      printf("uSv/hr: %f, T: %f C (%f F), P 1st: %f mbar, P 2nd: %f mbar (%f inHg)\n", uSv, T, CtoF(T), P, PP, mbartoInHg(PP));
       turnHVOn = true;  // FIXME: Base this on altitude
     }
 

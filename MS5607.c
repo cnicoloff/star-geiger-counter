@@ -1,19 +1,21 @@
+/*
+ *****************************************************************************
+ * Code adapted from:
+ * https://www.parallax.com/sites/default/files/downloads/29124-APPNote_520_C_code.pdf
+ * Copyright (c) 2009 MEAS Switzerland
+ *
+ * Adapted for Raspberry Pi and spidev libraries.
+ * Copyright (c) 2018 by Catherine Nicoloff, GNU GPL-3.0-or-later
+ *****************************************************************************
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <linux/spi/spidev.h>
 #include "PiSPI.h"
 
-/* Code adapted from:
- * https://www.parallax.com/sites/default/files/downloads/29124-APPNote_520_C_code.pdf
- * Copyright (c) 2009 MEAS Switzerland
- *
- * (and wiringPi)
- *
- * Adapted for Raspberry Pi and spidev libraries by Catherine Nicoloff, April 2018
- */
-
-/* Definitions to support MS5607 altimeter */
+// Definitions to support MS5607 altimeter
 static const unsigned int F_CPU = 4000000; // 4MHz XTAL
 static const char CMD_RESET = 0x1E;        // ADC reset command
 static const char CMD_ADC_READ = 0x00;     // ADC read command
@@ -37,9 +39,7 @@ static const int CHANNEL = 0;              // SPI channel
  */
 
 int altimeterInit(void) {
-  unsigned int ret;
-  ret = SPISetup(CHANNEL, F_CPU, 3);
-  return ret;
+  return SPISetup(CHANNEL, F_CPU, 3);  // Set up the SPI channel
 }
 
 /*
@@ -50,69 +50,101 @@ int altimeterInit(void) {
 void altimeterReset(void) {
   unsigned char buffer[1] = {0};
 
-  SPISetDelay(3000);
-  buffer[0] = CMD_RESET;
-  SPIDataRW(CHANNEL, buffer, 1);
+  SPISetDelay(3000);              // Set a 3ms read/write delay
+  buffer[0] = CMD_RESET;          // Put the reset command in the buffer
+  SPIDataRW(CHANNEL, buffer, 1);  // Send the command
 }
 
+/*
+ * altimeterCalibration(): Get the altimeter's factory calibration 
+ *                         coefficient (0..5)
+ *                         0: Pressure sensitivity
+ *                         1: Pressure offset
+ *                         2: Temperature coefficient of pressure sensitivity
+ *                         3: Temperature coefficient of pressure offset
+ *                         4: Reference temperature
+ *                         5: Temperature coefficient of the temperature
+ *
+ *                         These values are 16 bit, which is why they are
+ *                         acquired in two parts.
+ *****************************************************************************
+ */
 unsigned int altimeterCalibration(char coeffNum) {
   unsigned char buffer[5] = {0};
   unsigned int ret;
   unsigned int rC = 0;
 
-  SPISetDelay(0);
+  coeffNum &= 7;   // Enforce 0..7
+  SPISetDelay(0);  // No read/write delay
 
   buffer[0] = CMD_PROM_RD + (coeffNum * 2); // Send PROM READ command
-  buffer[1] = CMD_ADC_READ;
-  buffer[2] = CMD_ADC_READ;
-  // FIXME: Do something with this return value
-  ret = SPIDataRW(CHANNEL, buffer, 3);
+  buffer[1] = CMD_ADC_READ;                 // Get next char
+  buffer[2] = CMD_ADC_READ;                 // Get next char
 
-  rC = 256 * (int)buffer[1];
-  rC = rC + (int)buffer[2];
+  // FIXME: Do something with this return value
+  ret = SPIDataRW(CHANNEL, buffer, 3);      // Send and receive
+
+  rC = 256 * (int)buffer[1];                // Convert the high bits
+  rC = rC + (int)buffer[2];                 // Add the low bits
 
   return rC;
 }
 
+/*
+ * altimeterADC(): Query the altimeter's analog to digital converter
+ *
+ *                 These values are 32 bit, which is why they are acquired
+ *                 in three parts.
+ *****************************************************************************
+ */
 unsigned long altimeterADC(char cmd) {
-  unsigned char buffer[5] = {0};
-  unsigned char sw = (cmd & 0x0F);
-  unsigned short delay = SPIGetDelay();
+
+  unsigned char buffer[5] = {0};            // Set up a buffer
+  unsigned char delay = (cmd & 0x0F);       // Calculate how much delay we need
+  unsigned short delayOld = SPIGetDelay();  // Save our old delay value
   unsigned int ret;
   unsigned long temp = 0;
 
-  if (sw == CMD_ADC_256)
+  // Set an appropriate read/write delay
+  if (delay == CMD_ADC_256)
     SPISetDelay(900);
-  else if (sw == CMD_ADC_512)
+  else if (delay == CMD_ADC_512)
     SPISetDelay(3000);
-  else if (sw == CMD_ADC_1024)
+  else if (delay == CMD_ADC_1024)
     SPISetDelay(4000);
-  else if (sw == CMD_ADC_2048)
+  else if (delay == CMD_ADC_2048)
     SPISetDelay(6000);
-  else if (sw == CMD_ADC_4096)
+  else if (delay == CMD_ADC_4096)
     SPISetDelay(10000);
   else
     SPISetDelay(1000);
 
-  buffer[0] = CMD_ADC_CONV + cmd; // Send conversion command
-  ret = SPIDataRW(CHANNEL, buffer, 1);
+  buffer[0] = CMD_ADC_CONV + cmd;       // Send conversion command
+  ret = SPIDataRW(CHANNEL, buffer, 1);  // Send and receive
 
-  SPISetDelay(delay);
+  SPISetDelay(delay);                   // Set the delay
 
-  buffer[0] = CMD_ADC_READ; // Send ADC read command
-  buffer[1] = CMD_ADC_READ; // Send again to read first byte
-  buffer[2] = CMD_ADC_READ; // Send again to read second byte
-  buffer[3] = CMD_ADC_READ; // Send again to read third byte
+  buffer[0] = CMD_ADC_READ;             // Send ADC read command
+  buffer[1] = CMD_ADC_READ;             // Send again to read first byte
+  buffer[2] = CMD_ADC_READ;             // Send again to read second byte
+  buffer[3] = CMD_ADC_READ;             // Send again to read third byte
+
   // FIXME: Do something with this value
-  ret = SPIDataRW(CHANNEL, buffer, 4);
+  ret = SPIDataRW(CHANNEL, buffer, 4);  // Send and receive
 
-  temp = 65536 * (int)buffer[1];
-  temp = temp + 256 * (int)buffer[2];
-  temp = temp + (int)buffer[3];
+  SPISetDelay(delayOld);                // Set the delay to previous value
+
+  temp = 65536 * (int)buffer[1];        // Convert the high bits
+  temp = temp + 256 * (int)buffer[2];   // Convert the middle bits and add them
+  temp = temp + (int)buffer[3];         // Add the low bits
 
   return temp;
 }
 
+/*
+ * crc4(): This is a CRC check
+ *****************************************************************************
+ */
 unsigned char crc4(unsigned int n_prom[]) {
   int cnt;                // simple counter
   unsigned int n_rem;     // crc reminder
@@ -148,14 +180,27 @@ unsigned char crc4(unsigned int n_prom[]) {
   return (n_rem ^ 0x00);
 }
 
+/*
+ * readPUncompensated: Read the raw pressure data from the altimeter
+ *****************************************************************************
+ */
 unsigned long readPUncompensated(void) {
   return altimeterADC(CMD_ADC_D1 + CMD_ADC_256);
 }
 
+/*
+ * readTUncompensated: Read the raw temperature data from the altimeter
+ *****************************************************************************
+ */
 unsigned long readTUncompensated(void) {
   return altimeterADC(CMD_ADC_D2 + CMD_ADC_4096);
 }
 
+/*
+ * firstOrderP: Calculate the first order pressure using the MS5607 1st
+ *              order algorithm.
+ *****************************************************************************
+ */
 double firstOrderP(unsigned int coeffs[]) {
   double P = 0.0; // compensated temperature value
   double dT;      // difference between actual and measured temperature
@@ -175,18 +220,18 @@ double firstOrderP(unsigned int coeffs[]) {
   return P;
 }
 
+/*
+ * firstOrderT: Calculate the first order temperature using the MS5607 1st
+ *              order algorithm.
+ *****************************************************************************
+ */
 double firstOrderT(unsigned int coeffs[]) {
   double T = 0.0; // compensated temperature value
   double dT;      // difference between actual and measured temperature
-  //double offset;  // offset at actual temperature
-  //double sens;    // sensitivity at actual temperature
 
   unsigned long tRaw = readTUncompensated();
-  //printf("Raw T: %e\n", tRaw);
 
   dT = tRaw - coeffs[5] * pow(2,8);
-  //offset= coeffs[2] * pow(2,17) + dT * coeffs[4] / pow(2,6);
-  //sens = coeffs[1] * pow(2,16) + dT * coeffs[3] / pow(2,7);
 
   // calculate 1st order temperature (MS5607 1st order algorithm)
   T = (2000 + (dT * coeffs[6]) / pow(2,23)) / 100;
@@ -194,6 +239,11 @@ double firstOrderT(unsigned int coeffs[]) {
   return T;
 }
 
+/*
+ * secondOrderT: Calculate the second order temperature using the MS5607 2nd
+ *               order non-linear algorithm.
+ *****************************************************************************
+ */
 double secondOrderP(unsigned int coeffs[]) {
   double P = 0.0;                     // compensated pressure value
   double temp = firstOrderT(coeffs);  // first order temperature value
@@ -231,9 +281,6 @@ double secondOrderP(unsigned int coeffs[]) {
   temp = temp - temp2;
   offset = offset - offset2;
   sens = sens - sens2;
-
-  //offset= coeffs[2] * pow(2,17) + dT * coeffs[4] / pow(2,6);
-  //sens = coeffs[1] * pow(2,16) + dT * coeffs[3] / pow(2,7);
 
   // calculate 2nd order pressure (MS5607 2nd order non-linear algorithm)
   P = (((pRaw * sens) / pow(2,21) - offset) / pow(2,15)) / 100;

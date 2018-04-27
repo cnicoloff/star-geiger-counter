@@ -381,10 +381,14 @@ int main (void)
   printf("SPI init result: %d\n", ret);
   altimeterReset();
 
+  unsigned int C[8]; // calibration coefficients
   for (int i=0; i < 8; i++) {
-    ret = altimeterCalibration(i);
-    printf("Calibration result %d: %d\n", i, ret);
+    C[i] = altimeterCalibration(i);
+    printf("Calibration result %d: %d\n", i, C[i]);
   }
+  
+  unsigned char n_crc; // crc value of the prom
+  n_crc = crc4(C); 
 
  /* Loop forever or until CTRL-C */
   while (keepRunning) {
@@ -400,12 +404,16 @@ int main (void)
 
     /* Sleep for 1 s */
     sleep(1);
+    
+    double T = firstOrderT();
+    double P = firstOrderP();
+    
+    printf("T: %d, P: %d", T, P);
 
     /* Write some output */
     float temp2 = cpmTouSv(120);
 
     if (secNum % 20 == 0) {
-      //printf("%0d:%0d Counter: %5d\n", minNum, secNum, sumCounts(10));
       printf("uSv/hr: %f\n", temp2);
       turnHVOn = true;
     }

@@ -416,7 +416,7 @@ int main (void)
       PP = secondOrderP(coeffs);
 
       // Write some output
-      printf("uSv/hr: %f, T: %f C (%f F), P 1st: %f mbar, P 2nd: %f mbar (%f inHg)\n", uSv, T, CtoF(T), P, PP, mbartoInHg(PP));
+      printf("uSv/hr: %f, T: %f C (%f F), P: %f mbar (%f inHg), h: %f m\n", uSv, T, CtoF(T), PP, mbartoInHg(PP), PtoAlt(PP, T));
       turnHVOn = true;  // FIXME: Base this on altitude
     }
 

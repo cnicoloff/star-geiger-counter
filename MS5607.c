@@ -9,6 +9,9 @@
  *****************************************************************************
  */
 
+// FIXME: Sample temperature once and use it to make calculations, don't keep
+// sampling both in each function!
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -25,7 +28,7 @@ static const char CMD_ADC_D2 = 0x10;       // ADC D2 conversion
 static const char CMD_ADC_256 = 0x00;      // ADC OSR=256
 static const char CMD_ADC_512 = 0x02;      // ADC OSR=512
 static const char CMD_ADC_1024 = 0x04;     // ADC OSR=1024
-static const char CMD_ADC_2048 = 0x06;     // ADC OSR=2056
+static const char CMD_ADC_2048 = 0x06;     // ADC OSR=2048
 static const char CMD_ADC_4096 = 0x08;     // ADC OSR=4096
 static const char CMD_PROM_RD = 0xA0;      // Prom read command
 
@@ -185,7 +188,8 @@ unsigned char crc4(unsigned int n_prom[]) {
  *****************************************************************************
  */
 unsigned long readPUncompensated(void) {
-  return altimeterADC(CMD_ADC_D1 + CMD_ADC_256);
+  return altimeterADC(CMD_ADC_D1 + CMD_ADC_4096);
+  //return altimeterADC(CMD_ADC_D1 + CMD_ADC_256);
 }
 
 /*
@@ -325,4 +329,19 @@ float CtoF(double temp) {
  */
 float mbartoInHg(double pressure) {
   return pressure * 0.02953;
+}
+
+/*
+ * PtoAlt: Convert pressure to altitude
+ *****************************************************************************
+ */
+double PtoAlt(double pressure, double temp) {
+  float R = 287.057;     // gas constant of air at sea level
+  float g = 9.807;       // acceleration due to gravity, m/s^2
+  double Ps = 1008;      // pressure at sea level, mbar
+  float Ts = 288.15;     // temperature at sea level, K
+
+  return (R/g) * ((Ts + temp + 273.15) / 2.0) * log(Ps/pressure);
+
+  //return (pow((Ps/Pf),(1.0/5.255)) - 1) * ((temp + 273.15) / 0.0065);
 }

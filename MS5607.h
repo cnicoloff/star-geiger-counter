@@ -6,6 +6,7 @@ void altimeterReset(void);
 unsigned int altimeterCalibration(char coeffNum);
 unsigned long altimeterADC(char cmd);
 unsigned char crc4(unsigned int n_prom[]);
+
 unsigned long readPUncompensated(void);
 unsigned long readTUncompensated(void);
 
@@ -19,5 +20,6 @@ double firstOrderT(unsigned int coeffs[]);
 
 float CtoF(double temp);
 float mbartoInHg(double pressure);
+double PtoAlt(double pressure, double temp);
 
 #endif

@@ -1,4 +1,4 @@
-TARGET =	~/geiger/geiger
+TARGET =	~/geiger/star
 LIBS =	-lm -lpthread -lwiringPi
 CC =	gcc
 CFLAGS =	-g -Wall

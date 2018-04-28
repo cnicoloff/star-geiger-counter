@@ -11,13 +11,13 @@ unsigned char crc4(unsigned int n_prom[]);
 unsigned long readPUncompensated(void);
 unsigned long readTUncompensated(void);
 
-double calcDT(unsigned int coeffs[]);
-double calcOffset(unsigned int coeffs[]);
-double calcSens(unsigned int coeffs[]);
+double calcDT(unsigned long T);
+double calcOffset(unsigned long T);
+double calcSens(unsigned long T);
 
-double firstOrderP(unsigned int coeffs[]);
-double secondOrderP(unsigned int coeffs[]);
-double firstOrderT(unsigned int coeffs[]);
+double firstOrderP(unsigned long T, unsigned long P);
+double secondOrderP(unsigned long T, unsigned long P);
+double firstOrderT(unsigned long T);
 
 float CtoF(double temp);
 float mbartoInHg(double pressure);

@@ -17,8 +17,10 @@
 #include <time.h>
 #include <math.h>
 #include <pthread.h>
-#include "geiger.h";
+#include "geiger.h"
 #include "MS5607.h"
+
+static volatile bool keepRunning;
 
 // Initialize the GPIO pins.  Note that these are not the BCM GPIO pin 
 // numbers or the physical header pin numbers!  Conversion table is at 
@@ -49,9 +51,9 @@ void breakHandler(int s) {
 void *post (void *vargp) {
 
   printf("POST for next 10 seconds...\n");
-  turnHVOn = true;
+  HVOn();
   sleep(10);
-  turnHVOn = false;
+  HVOff();
   printf("POST complete!\n");
 
   pthread_exit(NULL);
@@ -94,10 +96,10 @@ int main (void)
   sleep(1);                  // Sleep 1s just so we don't power everything on at once
 
   altimeterSetup();          // Setup the altimeter
-  
+
   pthread_t post_id;   // Set up the POST thread
   pthread_create(&post_id, &attr, post, NULL);
-  
+
   // Loop forever or until CTRL-C
   while (keepRunning) {
 
@@ -106,14 +108,18 @@ int main (void)
     // Every 20 seconds, give some output
     if (getSecNum() % 20 == 0) {
       float uSv = cpmTouSv(120);
+      double T = readTUncompensated();
+      double P = readPUncompensated();
+      double T2 = firstOrderT(T);
+      double P2 = secondOrderP(T, P);
 
       // Write some output
-      printf("uSv/hr: %f, T: %f C (%f F), P: %f mbar, h: %f m\n", uSv, firstOrderT(C), CtoF(T), secondOrderP(C), PtoAlt(PP, T));
-      turnHVOn = true;  // FIXME: Base this on altitude
+      printf("uSv/hr: %f, T: %f C (%f F), P: %f mbar, h: %f m\n", uSv, T2, CtoF(T2), P2, PtoAlt(P2, T2));
+      HVOn();  // FIXME: Base this on altitude
     }
 
     // Every minute...
-    if (secNum % 60 == 0) {
+    if (getSecNum() % 60 == 0) {
     }
   }
 

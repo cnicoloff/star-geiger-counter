@@ -231,26 +231,26 @@ unsigned long readTUncompensated(void) {
  *         temperature
  *****************************************************************************
  */
-double calcDT(unsigned int coeffs[]) {
-  return (readTUncompensated() - coeffs[5] * pow(2,8));
+double calcDT(unsigned long T) {
+  return (T - C[5] * pow(2,8));
 }
 
 /*
  * calcOffset: Calculate the offset at the actual temperature
  *****************************************************************************
  */
-double calcOffset(unsigned int coeffs[]) {
-  double dT = calcDT(coeffs);
-  return (coeffs[2] * pow(2,17)) + (dT * coeffs[4]) / pow(2,6);
+double calcOffset(unsigned long T) {
+  double dT = calcDT(T);
+  return (C[2] * pow(2,17)) + (dT * C[4]) / pow(2,6);
 }
 
 /*
  * calcSens: Calculate the sensitivity at the actual temperature
  *****************************************************************************
  */
-double calcSens(unsigned int coeffs[]) {
-  double dT = calcDT(coeffs);
-  return (coeffs[1] * pow(2,16)) + (dT * coeffs[3]) / pow(2,7);
+double calcSens(unsigned long T) {
+  double dT = calcDT(T);
+  return (C[1] * pow(2,16)) + (dT * C[3]) / pow(2,7);
 }
 
 /*
@@ -258,21 +258,19 @@ double calcSens(unsigned int coeffs[]) {
  *              order algorithm.
  *****************************************************************************
  */
-double firstOrderP(unsigned int coeffs[]) {
-  double P = 0.0; // compensated temperature value
-  double offset;  // offset at actual temperature
-  double sens;    // sensitivity at actual temperature
+double firstOrderP(unsigned long T, unsigned long P) {
+  double Pcomp = 0.0; // compensated temperature value
+  double offset;      // offset at actual temperature
+  double sens;        // sensitivity at actual temperature
 
-  unsigned long pRaw = readPUncompensated();
-
-  offset = calcOffset(coeffs);
-  sens = calcSens(coeffs);
+  offset = calcOffset(T);
+  sens = calcSens(T);
 
   // calculate 1st order pressure (MS5607 1st order algorithm)
 
-  P = (((pRaw * sens) / pow(2,21) - offset) / pow(2,15)) / 100;
+  Pcomp = (((P * sens) / pow(2,21) - offset) / pow(2,15)) / 100;
 
-  return P;
+  return Pcomp;
 }
 
 /*
@@ -280,16 +278,16 @@ double firstOrderP(unsigned int coeffs[]) {
  *              order algorithm.
  *****************************************************************************
  */
-double firstOrderT(unsigned int coeffs[]) {
-  double T = 0.0; // compensated temperature value
-  double dT;      // difference between actual and measured temperature
+double firstOrderT(unsigned long T) {
+  double Tcomp = 0.0; // compensated temperature value
+  double dT;          // difference between actual and measured temperature
 
-  dT = calcDT(coeffs);
+  dT = calcDT(T);
 
   // calculate 1st order temperature (MS5607 1st order algorithm)
-  T = (2000 + (dT * coeffs[6]) / pow(2,23)) / 100;
+  Tcomp = (2000 + (dT * C[6]) / pow(2,23)) / 100;
 
-  return T;
+  return Tcomp;
 }
 
 /*
@@ -297,15 +295,13 @@ double firstOrderT(unsigned int coeffs[]) {
  *               order non-linear algorithm.
  *****************************************************************************
  */
-double secondOrderP(unsigned int coeffs[]) {
-  double P = 0.0;                     // compensated pressure value
-  double temp = firstOrderT(coeffs);  // first order temperature value
+double secondOrderP(unsigned long T, unsigned long P) {
+  double Pcomp = 0.0;                 // compensated pressure value
+  double temp = firstOrderT(T);       // first order temperature value
   double temp2 = 0.0;                 // ??
   double dT;                          // difference between actual and measured temperature
   double offset, offset2 = 0.0;       // offset at actual temperature
   double sens, sens2 = 0.0;           // sensitivity at actual temperature
-
-  unsigned long pRaw = readPUncompensated();
 
   offset = calcOffset(coeffs);
   sens = calcSens(coeffs);
@@ -336,9 +332,9 @@ double secondOrderP(unsigned int coeffs[]) {
   sens = sens - sens2;
 
   // calculate 2nd order pressure (MS5607 2nd order non-linear algorithm)
-  P = (((pRaw * sens) / pow(2,21) - offset) / pow(2,15)) / 100;
+  Pcomp = (((P * sens) / pow(2,21) - offset) / pow(2,15)) / 100;
 
-  return P;
+  return Pcomp;
 }
 
 /*

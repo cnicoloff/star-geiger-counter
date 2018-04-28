@@ -8,8 +8,16 @@ unsigned long altimeterADC(char cmd);
 unsigned char crc4(unsigned int n_prom[]);
 unsigned long readPUncompensated(void);
 unsigned long readTUncompensated(void);
-double firstOrderP(unsigned int C[]);
-double secondOrderP(unsigned int C[]);
-double firstOrderT(unsigned int C[]);
+
+double calcDT(unsigned int coeffs[]);
+double calcOffset(unsigned int coeffs[]);
+double calcSens(unsigned int coeffs[]);
+
+double firstOrderP(unsigned int coeffs[]);
+double secondOrderP(unsigned int coeffs[]);
+double firstOrderT(unsigned int coeffs[]);
+
+float CtoF(double temp);
+float mbartoInHg(double pressure);
 
 #endif

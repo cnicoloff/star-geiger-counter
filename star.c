@@ -83,6 +83,8 @@ int main (void)
   geigerSetup();             // Setup the Geiger circuit
   sleep(1);                  // Sleep 1s just so we don't power everything on at once
   altimeterSetup();          // Setup the altimeter
+  setQFF(42.29, 45, 0);
+  printf("QFF: %f", getQFF());
   //pthread_t post_id;         // Set up the POST thread
   //pthread_create(&post_id, &attr, post, NULL);
 

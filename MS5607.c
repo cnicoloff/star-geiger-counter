@@ -373,6 +373,8 @@ void setQFF(float latitude, float elevation, float height) {
   
   double QFE = Pcomp * (1 + ((g * height) / (R * Tcomp)));
   
+  printf("QFE: %f", QFE);
+  
   if (Tcomp < -7)
     T1 = 0.5 * Tcomp + 275;
   else if (Tcomp < 2)

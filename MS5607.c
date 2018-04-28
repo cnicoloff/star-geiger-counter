@@ -380,7 +380,7 @@ void setQFF(float latitude, float elevation, float height) {
   else
     T1 = 1.07 * Tcomp + 274.5;
     
-  QFF = QFE * exp((elevation * 0.034163(1 - 0.0026373 * cos(latitude)))/T1);
+  QFF = QFE * exp((elevation * 0.034163 * (1 - 0.0026373 * cos(latitude)))/T1);
 }
 
 float getQFF() {

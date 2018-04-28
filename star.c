@@ -103,7 +103,7 @@ int main (void)
       double P2 = secondOrderP(T, P);
 
       // Write some output
-      printf("uSv/hr: %f, T: %f C (%f F), P: %f mbar, h: %f m\n", uSv, T2, CtoF(T2), P2, PtoAlt(P2, T2));
+      printf("uSv/hr: %2.2f, T: %3.2f C (%3.2f F), P: %4.2f mbar, h: %7.2f m\n", uSv, T2, CtoF(T2), P2, PtoAlt(P2, T2));
       HVOn();  // FIXME: Base this on altitude
     }
 

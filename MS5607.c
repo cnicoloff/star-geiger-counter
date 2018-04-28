@@ -357,31 +357,31 @@ double PtoAlt(double pressure, double temp) {
  * setQFF: Set the QFF given the station latitude, elevation, and height
  *         elevation: the height of the ground above sea level
  *         height:    the height of STAR above the ground
- * 
+ *
  * Calculations: http://www.metpod.co.uk/metcalcs/pressure/
+ * Standard values: http://www-mdp.eng.cam.ac.uk/web/library/enginfo/aerothermal_dvd_only/aero/atmos/atmos.html
  *****************************************************************************
  */
 void setQFF(float latitude, float elevation, float height) {
-  float R = 287.057;     // gas constant of air at sea level
-  float g = 9.807;       // acceleration due to gravity, m/s^2
+  float R = 287.1;       // gas constant of air at sea level
+  float g = 9.81;        // acceleration due to gravity, m/s^2
+  float t = 288.2;       // standard temperature at sea level
   double T1 = 0.0;
-  
+
   double T = readTUncompensated();
   double P = readPUncompensated();
   double Tcomp = firstOrderT(T);
   double Pcomp = secondOrderP(T, P);
-  
-  double QFE = Pcomp * (1 + ((g * height) / (R * Tcomp)));
-  
-  printf("QFE: %f", QFE);
-  
-  if (Tcomp < -7)
+
+  double QFE = Pcomp *(1 + ((g * height) / (R * t)));
+
+  if (Tcomp < -7.0)
     T1 = 0.5 * Tcomp + 275;
-  else if (Tcomp < 2)
+  else if (Tcomp < 2.0)
     T1 = 0.535 * Tcomp + 275.6;
   else
     T1 = 1.07 * Tcomp + 274.5;
-    
+
   QFF = QFE * exp((elevation * 0.034163 * (1 - 0.0026373 * cos(latitude)))/T1);
 }
 

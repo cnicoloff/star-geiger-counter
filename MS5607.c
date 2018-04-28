@@ -55,9 +55,8 @@ int altimeterInit(void) {
 
 int altimeterReset(void) {
   unsigned char buffer[1] = {0};
-  int ret;
 
-  SPISetDelay(500);                      // Set a 0.5ms read/write delay
+  SPISetDelay(3000);                      // Set a 0.5ms read/write delay
   buffer[0] = CMD_RESET;                 // Put the reset command in the buffer
   return SPIDataRW(CHANNEL, buffer, 1);  // Send the command
 }
@@ -78,25 +77,19 @@ int altimeterReset(void) {
  */
 unsigned int altimeterCalibration(char coeffNum) {
   unsigned char buffer[5] = {0};
-  int ret;
   unsigned int rC = 0;
 
-  coeffNum &= 7;   // Enforce 0..7
-  SPISetDelay(0);  // No read/write delay
+  coeffNum &= 7;     // Enforce 0..7
+  SPISetDelay(500);  // 0.5ms read/write delay
 
   buffer[0] = CMD_PROM_RD + (coeffNum * 2); // Send PROM READ command
   buffer[1] = CMD_ADC_READ;                 // Get next char
   buffer[2] = CMD_ADC_READ;                 // Get next char
 
-  ret = SPIDataRW(CHANNEL, buffer, 3);      // Send and receive
+  SPIDataRW(CHANNEL, buffer, 3);      // Send and receive
 
-  if (ret < 0) {
-    rC = 0;
-  }
-  else {
-    rC = 256 * (int)buffer[1];              // Convert the high bits
-    rC = rC + (int)buffer[2];               // Add the low bits
-  }
+  rC = 256 * (int)buffer[1];              // Convert the high bits
+  rC = rC + (int)buffer[2];               // Add the low bits
 
   return rC;
 }
@@ -113,7 +106,6 @@ unsigned long altimeterADC(char cmd) {
   unsigned char buffer[5] = {0};            // Set up a buffer
   unsigned char delay = (cmd & 0x0F);       // Calculate how much delay we need
   unsigned short delayOld = SPIGetDelay();  // Save our old delay value
-  int ret;
   unsigned long temp = 0;
 
   // Set an appropriate read/write delay
@@ -140,17 +132,13 @@ unsigned long altimeterADC(char cmd) {
   buffer[2] = CMD_ADC_READ;             // Send again to read second byte
   buffer[3] = CMD_ADC_READ;             // Send again to read third byte
 
-  ret = SPIDataRW(CHANNEL, buffer, 4);  // Send and receive
-  if (ret < 0) {
-    temp = 0;
-  }
-  else {
-    SPISetDelay(delayOld);                // Set the delay to previous value
+  SPIDataRW(CHANNEL, buffer, 4);        // Send and receive
 
-    temp = 65536 * (int)buffer[1];        // Convert the high bits
-    temp = temp + 256 * (int)buffer[2];   // Convert the middle bits and add them
-    temp = temp + (int)buffer[3];         // Add the low bits
-  }
+  SPISetDelay(delayOld);                // Set the delay to previous value
+
+  temp = 65536 * (int)buffer[1];        // Convert the high bits
+  temp = temp + 256 * (int)buffer[2];   // Convert the middle bits and add them
+  temp = temp + (int)buffer[3];         // Add the low bits
 
   return temp;
 }
@@ -199,8 +187,7 @@ unsigned char crc4(unsigned int n_prom[]) {
  *****************************************************************************
  */
 unsigned long readPUncompensated(void) {
-  return altimeterADC(CMD_ADC_D1 + CMD_ADC_4096);
-  //return altimeterADC(CMD_ADC_D1 + CMD_ADC_256);
+  return altimeterADC(CMD_ADC_D1 + CMD_ADC_256);
 }
 
 /*
@@ -208,7 +195,7 @@ unsigned long readPUncompensated(void) {
  *****************************************************************************
  */
 unsigned long readTUncompensated(void) {
-  return altimeterADC(CMD_ADC_D2 + CMD_ADC_4096);
+  return altimeterADC(CMD_ADC_D2 + CMD_ADC_256);
 }
 
 /*

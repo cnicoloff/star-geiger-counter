@@ -366,8 +366,8 @@ void setQFF(float latitude, float elevation, float height) {
   float g = 9.807;       // acceleration due to gravity, m/s^2
   double T1 = 0.0;
   
-  double T = getTUncompensated();
-  double P = getPUncompensated();
+  double T = readTUncompensated();
+  double P = readPUncompensated();
   double Tcomp = firstOrderT(T);
   double Pcomp = secondOrderP(T, P);
   
@@ -380,8 +380,6 @@ void setQFF(float latitude, float elevation, float height) {
   else
     T1 = 1.07 * Tcomp + 274.5;
     
-  }
-  
   QFF = QFE * exp((elevation * 0.034163(1 - 0.0026373 * cos(latitude)))/T1);
 }
 

@@ -21,8 +21,9 @@ double firstOrderT(unsigned long T);
 
 float CtoF(double temp);
 float mbartoInHg(double pressure);
-
-void setQFF(double pressure);
 double PtoAlt(double pressure, double temp);
+
+void setQFF(float latitude, float elevation, float height);
+float getQFF();
 
 #endif

@@ -33,8 +33,32 @@ static const char CMD_ADC_4096 = 0x08;     // ADC OSR=4096
 static const char CMD_PROM_RD = 0xA0;      // Prom read command
 
 static const int CHANNEL = 0;              // SPI channel
+static volatile unsigned int C[8] = {0};   // Altimeter calibration coefficients
 
 static volatile float QFF = 1010;          // QFF pressure at sea level, mbar
+
+/*
+ * altimeterSetup(): Setup altimeter
+ *                   Returns -1 if there is an error
+ *****************************************************************************
+ */
+
+int altimeterSetup(void) {
+  // Initialize the altimeter
+  if (altimeterInit() < 0)
+    return -1;
+  else {
+    altimeterReset();              // Reset after power on
+
+    // Get altimeter factory calibration coefficients
+    for (int i=0; i < 8; i++) {
+      C[i] = altimeterCalibration(i);
+      printf("%d: %d ", i, C[i]);
+    }
+    printf("\n");
+  }
+  return 0;
+}
 
 /*
  * altimeterInit(): Initialize the altimeter

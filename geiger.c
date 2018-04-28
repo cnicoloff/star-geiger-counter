@@ -1,7 +1,7 @@
 /*
  *****************************************************************************
- * geiger.c:  interfaces a Raspberry Pi Zero with the custom Geiger
- *            circuit inside STAR.
+ * geiger.c:  interfaces a Raspberry Pi with the custom Geiger circuit 
+ *            inside STAR.
  *
  * (C) 2018, Catherine Nicoloff, GNU GPL-3.0-or-later
  *****************************************************************************
@@ -18,7 +18,6 @@
 #include <math.h>
 #include <pthread.h>
 #include <wiringPi.h>
-#include "MS5607.h"
 
 static int size = 60;             // Array size
 static volatile int secNum;       // Which index in the seconds array
@@ -35,25 +34,52 @@ static volatile bool keepRunning; // Signals when to exit
 static volatile bool turnHVOn;    // Signals when to turn the HV on
 static volatile bool HVisOn;      // Is HV on?
 
-// Initialize the GPIO pins.  Note that these are not the BCM GPIO pin 
-// numbers or the physical header pin numbers!  Conversion table is at 
-// http://wiringpi.com/pins/
-static int ledPin = 4;
-static int geigerPin = 5;
-static int gatePin = 6;
-
-// How long to flash the LED when a count is recorded, in milliseconds
-static int flashTime = 10;
 
 /*
- * breakHandler: Captures CTRL-C so we can shut down cleanly.
+ * geigerSetup: Initializes the Geiger circuit.
  *****************************************************************************
  */
+int geigerSetup(void) {
 
-void breakHandler(int s) {
+  wiringPiSetup(); 
+  
+  // Set up the attribute that allows our threads to run detached
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+  
+  turnHVOn = false;          // Do not turn HV on at this time
+  HVisOn = false;            // HV is off by default
+  pinMode(gatePin, OUTPUT);  // Set up MOSFET gate pin
+  pthread_t HV_id;           // Set up the HV control thread
+  pthread_create(&HV_id, &attr, HVControl, NULL);
 
-  // Tell all loops and threads to exit
-  keepRunning = false;
+  LEDTime = 0;               // Initialize the LED
+  LEDisOn = false;           // LED is off by default
+  pinMode(ledPin, OUTPUT);   // Set up LED pin
+  pthread_t led_id;          // Set up the LED blink thread
+  pthread_create(&led_id, &attr, blinkLED, NULL);
+
+  // Configure wiringPi to detect pulses with a falling
+  // edge on the Geiger pin
+  wiringPiISR(geigerPin, INT_EDGE_FALLING, &countInterrupt);
+  pullUpDnControl(geigerPin, PUD_OFF);  // Pull up/down resistors off
+
+  // Initialize counting variables
+  hourNum   = -1;
+  minNum    = -1;
+  secNum    = 0;
+  float uSv = 0.0;
+
+  // Initialize the counting arrays
+  for (int i=0; i < size; i++) {
+    sec[i] = min[i] = hour[i] = 0;
+  }
+
+  pthread_t count_id;  // Set up the counting thread
+  pthread_create(&count_id, &attr, count, NULL);
+
+  return 0;
 }
 
 /*
@@ -128,7 +154,6 @@ void *blinkLED (void *vargp) {
   LEDOff();
   pthread_exit(NULL);
 }
-
 
 /*
  * getIndex: Get the counts for a particular index from the circular buffer.
@@ -269,22 +294,6 @@ void *count (void *vargp) {
 }
 
 /*
- * post: Thread to perform a power on self-test.
- *****************************************************************************
- */
-
-void *post (void *vargp) {
-
-  printf("POST for next 10 seconds...\n");
-  turnHVOn = true;
-  sleep(10);
-  turnHVOn = false;
-  printf("POST complete!\n");
-
-  pthread_exit(NULL);
-}
-
-/*
  * HVOn: Turns HV on and logs it.
  *****************************************************************************
  */
@@ -330,123 +339,4 @@ void *HVControl (void *vargp) {
 
   HVOff();
   pthread_exit(NULL);
-}
-
-/*
- *****************************************************************************
- * main
- *****************************************************************************
- */
-
-int main (void)
-{
-
-  // Set up a signal handler for CTRL-C
-  struct sigaction act;
-  act.sa_handler = breakHandler;
-  sigaction(SIGINT, &act, NULL);
-
-  // Define the output file
-  FILE *opf;
-  char opfname[] = "out.txt";
-  opf = fopen(opfname, "w");  // Attempt to open our output file
-
-  // If we failed to open the file, complain and exit
-  if (opf == NULL) {
-    fprintf(stderr, "Can't open output file!\n");
-    exit(1);
-  }
-
-  // Set up the attribute that allows our threads to run detached
-  pthread_attr_t attr;
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
-  keepRunning = true;        // Run forever unless halted
-
-  wiringPiSetup();           // Initialize wiringPi
-
-  turnHVOn = false;          // Do not turn HV on at this time
-  HVisOn = false;            // HV is off by default
-  pinMode(gatePin, OUTPUT);  // Set up MOSFET gate pin
-  pthread_t HV_id;           // Set up the HV control thread
-  pthread_create(&HV_id, &attr, HVControl, NULL);
-
-  LEDTime = 0;               // Initialize the LED
-  LEDisOn = false;           // LED is off by default
-  pinMode(ledPin, OUTPUT);   // Set up LED pin
-  pthread_t led_id;          // Set up the LED blink thread
-  pthread_create(&led_id, &attr, blinkLED, NULL);
-
-  // Configure wiringPi to detect pulses with a falling
-  // edge on the Geiger pin
-  wiringPiISR(geigerPin, INT_EDGE_FALLING, &countInterrupt);
-  pullUpDnControl(geigerPin, PUD_OFF);  // Pull up/down resistors off
-
-  // Initialize counting variables
-  hourNum   = -1;
-  minNum    = -1;
-  secNum    = 0;
-  float uSv = 0.0;
-
-  // Initialize the counting arrays
-  for (int i=0; i < size; i++) {
-    sec[i] = min[i] = hour[i] = 0;
-  }
-
-  pthread_t count_id;  // Set up the counting thread
-  pthread_create(&count_id, &attr, count, NULL);
-
-  pthread_t post_id;   // Set up the POST thread
-  pthread_create(&post_id, &attr, post, NULL);
-
-  sleep(1);  // Sleep 1s just so we don't power everything on at once
-
-  // Initialize the altimeter variables
-  double T = 0.0;
-  double PP = 0.0;
-
-  // Initialize the altimeter
-  if (altimeterInit() < 0)
-    printf("SPI init failed!\n");  // SPI communications failed
-  else
-    altimeterReset();              // Reset after power on
-
-  // Get altimeter factory calibration coefficients
-  unsigned int coeffs[8] = {0};
-  for (int i=0; i < 8; i++) {
-    coeffs[i] = altimeterCalibration(i);
-    printf("%d: %d\n", i, coeffs[i]);
-  }
-
-  // CRC value of the coefficients
-  // unsigned char n_crc = crc4(coeffs);
-
-  // Loop forever or until CTRL-C
-  while (keepRunning) {
-
-    sleep(1);  // Sleep for 1 second
-
-    // Every 20 seconds, give some output
-    if (secNum % 20 == 0) {
-      uSv = cpmTouSv(120);
-      T = firstOrderT(coeffs);
-      PP = secondOrderP(coeffs);
-
-      // Write some output
-      printf("uSv/hr: %f, T: %f C (%f F), P: %f mbar, h: %f m\n", uSv, T, CtoF(T), PP, PtoAlt(PP, T));
-      turnHVOn = true;  // FIXME: Base this on altitude
-    }
-
-    // Every minute...
-    if (secNum % 60 == 0) {
-    }
-  }
-
-  fclose(opf);                  // Close the output file
-  pthread_attr_destroy(&attr);  // Clean up
-  HVOff();                      // Make sure HV is off
-  LEDOff();                     // Make sure LED is off
-
-  return EXIT_SUCCESS;          // Exit
 }

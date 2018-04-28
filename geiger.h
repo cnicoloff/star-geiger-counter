@@ -7,7 +7,11 @@ void LEDOn (void);
 void LEDOff (void);
 void *blinkLED (void *vargp);
 
+int getSecNum(void);
+int getMinNum(void);
+int getHourNum(void);
 int getIndex(int numIndex);
+
 int sumCounts(int numSecs);
 float averageCounts(int numSecs);
 float cpmTouSv(int numSecs);

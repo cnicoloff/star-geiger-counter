@@ -104,8 +104,8 @@ int main (void)
     sleep(1);  // Sleep for 1 second
 
     // Every 20 seconds, give some output
-    if (secNum % 20 == 0) {
-      uSv = cpmTouSv(120);
+    if (getSecNum() % 20 == 0) {
+      float uSv = cpmTouSv(120);
 
       // Write some output
       printf("uSv/hr: %f, T: %f C (%f F), P: %f mbar, h: %f m\n", uSv, firstOrderT(C), CtoF(T), secondOrderP(C), PtoAlt(PP, T));

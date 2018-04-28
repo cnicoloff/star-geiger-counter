@@ -156,6 +156,33 @@ void *blinkLED (void *vargp) {
 }
 
 /*
+ * getSecNum: 
+ *****************************************************************************
+ */
+
+int getSecNum(void) {
+  return secNum;
+}
+
+/*
+ * getMinNum: 
+ *****************************************************************************
+ */
+
+int getMinNum(void) {
+  return minNum;
+}
+
+/*
+ * getHourNum: 
+ *****************************************************************************
+ */
+
+int getHourNum(void) {
+  return hourNum;
+}
+
+/*
  * getIndex: Get the counts for a particular index from the circular buffer.
  *****************************************************************************
  */

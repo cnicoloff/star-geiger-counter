@@ -19,8 +19,8 @@ float cpmTouSv(int numSecs);
 void countInterrupt (void);
 void *count (void *vargp);
 
-void HVOn (void);
-void HVOff (void);
+void HVOn(void);
+void HVOff(void);
 void *HVControl (void *vargp);
 
 #endif

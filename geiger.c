@@ -34,6 +34,16 @@ static volatile bool keepRunning; // Signals when to exit
 static volatile bool turnHVOn;    // Signals when to turn the HV on
 static volatile bool HVisOn;      // Is HV on?
 
+// Initialize the GPIO pins.  Note that these are not the BCM GPIO pin 
+// numbers or the physical header pin numbers!  Conversion table is at 
+// http://wiringpi.com/pins/
+static int ledPin = 4;
+static int geigerPin = 5;
+static int gatePin = 6;
+
+// How long to flash the LED when a count is recorded, in milliseconds
+static int flashTime = 10;
+
 
 /*
  * geigerSetup: Initializes the Geiger circuit.
@@ -69,7 +79,6 @@ int geigerSetup(void) {
   hourNum   = -1;
   minNum    = -1;
   secNum    = 0;
-  float uSv = 0.0;
 
   // Initialize the counting arrays
   for (int i=0; i < size; i++) {

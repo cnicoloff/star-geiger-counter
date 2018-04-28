@@ -34,6 +34,8 @@ static const char CMD_PROM_RD = 0xA0;      // Prom read command
 
 static const int CHANNEL = 0;              // SPI channel
 
+static volatile float QFF = 1010;          // QFF pressure at sea level, mbar
+
 /*
  * altimeterInit(): Initialize the altimeter
  *                  Returns the Linux file-descriptor for the device
@@ -332,16 +334,29 @@ float mbartoInHg(double pressure) {
 }
 
 /*
+ * setQFF: Set the pressure at sea level to QFF
+ *
+ * QFF is the MSL pressure derived from local meteorological station
+ * conditions. This is the altimeter setting that is intended to produce
+ * correct altitude indication (i.e., no error) on an altimeter at the
+ * actual sea level elevation.
+ *
+ * See: https://weather.us/observations/pressure-qff.html
+ *****************************************************************************
+ */
+void setQFF(double pressure) {
+  QFF = pressure;
+}
+
+
+/*
  * PtoAlt: Convert pressure to altitude
  *****************************************************************************
  */
 double PtoAlt(double pressure, double temp) {
   float R = 287.057;     // gas constant of air at sea level
   float g = 9.807;       // acceleration due to gravity, m/s^2
-  double Ps = 1008;      // pressure at sea level, mbar
   float Ts = 288.15;     // temperature at sea level, K
 
-  return (R/g) * ((Ts + temp + 273.15) / 2.0) * log(Ps/pressure);
-
-  //return (pow((Ps/Pf),(1.0/5.255)) - 1) * ((temp + 273.15) / 0.0065);
+  return (R/g) * ((Ts + temp + 273.15) / 2.0) * log(QFF/pressure);
 }

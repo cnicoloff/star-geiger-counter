@@ -20,6 +20,8 @@ double firstOrderT(unsigned int coeffs[]);
 
 float CtoF(double temp);
 float mbartoInHg(double pressure);
+
+void setQFF(double pressure);
 double PtoAlt(double pressure, double temp);
 
 #endif

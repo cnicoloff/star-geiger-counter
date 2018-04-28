@@ -35,7 +35,7 @@ static const char CMD_PROM_RD = 0xA0;      // Prom read command
 static const int CHANNEL = 0;              // SPI channel
 static volatile unsigned int C[8] = {0};   // Altimeter calibration coefficients
 
-static volatile float QFF = 1010;          // QFF pressure at sea level, mbar
+static volatile float QFF = 1009;          // QFF pressure at sea level, mbar
 
 /*
  * altimeterInit(): Initialize the altimeter
@@ -53,12 +53,13 @@ int altimeterInit(void) {
  *****************************************************************************
  */
 
-void altimeterReset(void) {
+int altimeterReset(void) {
   unsigned char buffer[1] = {0};
+  int ret;
 
-  SPISetDelay(3000);              // Set a 3ms read/write delay
-  buffer[0] = CMD_RESET;          // Put the reset command in the buffer
-  SPIDataRW(CHANNEL, buffer, 1);  // Send the command
+  SPISetDelay(500);                      // Set a 0.5ms read/write delay
+  buffer[0] = CMD_RESET;                 // Put the reset command in the buffer
+  return SPIDataRW(CHANNEL, buffer, 1);  // Send the command
 }
 
 /*
@@ -77,7 +78,7 @@ void altimeterReset(void) {
  */
 unsigned int altimeterCalibration(char coeffNum) {
   unsigned char buffer[5] = {0};
-  unsigned int ret;
+  int ret;
   unsigned int rC = 0;
 
   coeffNum &= 7;   // Enforce 0..7
@@ -87,11 +88,15 @@ unsigned int altimeterCalibration(char coeffNum) {
   buffer[1] = CMD_ADC_READ;                 // Get next char
   buffer[2] = CMD_ADC_READ;                 // Get next char
 
-  // FIXME: Do something with this return value
   ret = SPIDataRW(CHANNEL, buffer, 3);      // Send and receive
 
-  rC = 256 * (int)buffer[1];                // Convert the high bits
-  rC = rC + (int)buffer[2];                 // Add the low bits
+  if (ret < 0) {
+    rC = 0;
+  }
+  else {
+    rC = 256 * (int)buffer[1];              // Convert the high bits
+    rC = rC + (int)buffer[2];               // Add the low bits
+  }
 
   return rC;
 }
@@ -108,7 +113,7 @@ unsigned long altimeterADC(char cmd) {
   unsigned char buffer[5] = {0};            // Set up a buffer
   unsigned char delay = (cmd & 0x0F);       // Calculate how much delay we need
   unsigned short delayOld = SPIGetDelay();  // Save our old delay value
-  unsigned int ret;
+  int ret;
   unsigned long temp = 0;
 
   // Set an appropriate read/write delay
@@ -123,10 +128,10 @@ unsigned long altimeterADC(char cmd) {
   else if (delay == CMD_ADC_4096)
     SPISetDelay(10000);
   else
-    SPISetDelay(1000);
+    SPISetDelay(500);
 
   buffer[0] = CMD_ADC_CONV + cmd;       // Send conversion command
-  ret = SPIDataRW(CHANNEL, buffer, 1);  // Send and receive
+  SPIDataRW(CHANNEL, buffer, 1);        // Send and receive
 
   SPISetDelay(delay);                   // Set the delay
 
@@ -135,14 +140,17 @@ unsigned long altimeterADC(char cmd) {
   buffer[2] = CMD_ADC_READ;             // Send again to read second byte
   buffer[3] = CMD_ADC_READ;             // Send again to read third byte
 
-  // FIXME: Do something with this value
   ret = SPIDataRW(CHANNEL, buffer, 4);  // Send and receive
+  if (ret < 0) {
+    temp = 0;
+  }
+  else {
+    SPISetDelay(delayOld);                // Set the delay to previous value
 
-  SPISetDelay(delayOld);                // Set the delay to previous value
-
-  temp = 65536 * (int)buffer[1];        // Convert the high bits
-  temp = temp + 256 * (int)buffer[2];   // Convert the middle bits and add them
-  temp = temp + (int)buffer[3];         // Add the low bits
+    temp = 65536 * (int)buffer[1];        // Convert the high bits
+    temp = temp + 256 * (int)buffer[2];   // Convert the middle bits and add them
+    temp = temp + (int)buffer[3];         // Add the low bits
+  }
 
   return temp;
 }

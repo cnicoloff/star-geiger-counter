@@ -289,10 +289,11 @@ void *count (void *vargp) {
  */
 
 void HVOn (void) {
-
-  digitalWrite(gatePin, HIGH);  // Turn on the MOSFET gate pin
-  HVisOn = true;                // HV is now on
-  printf("HV is on!\n");        // FIXME: Log to file
+  if (!HVisOn) {
+    digitalWrite(gatePin, HIGH);  // Turn on the MOSFET gate pin
+    HVisOn = true;                // HV is now on
+    printf("HV is on!\n");        // FIXME: Log to file
+  }
 }
 
 /*
@@ -301,10 +302,11 @@ void HVOn (void) {
  */
 
 void HVOff (void) {
-
-  digitalWrite(gatePin, LOW);   // Turn off the MOSFET gate pin
-  HVisOn = false;               // HV is now off
-  printf("HV is off.\n");       // FIXME: Log to file
+  if (HVisOn) {
+    digitalWrite(gatePin, LOW);   // Turn off the MOSFET gate pin
+    HVisOn = false;               // HV is now off
+    printf("HV is off.\n");       // FIXME: Log to file
+  }
 }
 
 /*
@@ -347,8 +349,8 @@ int geigerSetup(void) {
   turnHVOn = false;          // Do not turn HV on at this time
   HVisOn = false;            // HV is off by default
   pinMode(gatePin, OUTPUT);  // Set up MOSFET gate pin
-  pthread_t HV_id;           // Set up the HV control thread
-  pthread_create(&HV_id, &attr, HVControl, NULL);
+  //pthread_t HV_id;           // Set up the HV control thread
+  //pthread_create(&HV_id, &attr, HVControl, NULL);
 
   LEDTime = 0;               // Initialize the LED
   LEDisOn = false;           // LED is off by default

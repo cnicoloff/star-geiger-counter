@@ -83,8 +83,8 @@ int main (void)
   geigerSetup();             // Setup the Geiger circuit
   sleep(1);                  // Sleep 1s just so we don't power everything on at once
   altimeterSetup();          // Setup the altimeter
-  pthread_t post_id;         // Set up the POST thread
-  pthread_create(&post_id, &attr, post, NULL);
+  //pthread_t post_id;         // Set up the POST thread
+  //pthread_create(&post_id, &attr, post, NULL);
 
   // Loop forever or until CTRL-C
   while (keepRunning) {

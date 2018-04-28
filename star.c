@@ -22,16 +22,6 @@
 
 static volatile bool keepRunning;
 
-// Initialize the GPIO pins.  Note that these are not the BCM GPIO pin 
-// numbers or the physical header pin numbers!  Conversion table is at 
-// http://wiringpi.com/pins/
-static int ledPin = 4;
-static int geigerPin = 5;
-static int gatePin = 6;
-
-// How long to flash the LED when a count is recorded, in milliseconds
-static int flashTime = 10;
-
 /*
  * breakHandler: Captures CTRL-C so we can shut down cleanly.
  *****************************************************************************
@@ -90,20 +80,17 @@ int main (void)
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
   keepRunning = true;        // Run forever unless halted
-
   geigerSetup();             // Setup the Geiger circuit
-
   sleep(1);                  // Sleep 1s just so we don't power everything on at once
-
   altimeterSetup();          // Setup the altimeter
-
-  pthread_t post_id;   // Set up the POST thread
+  pthread_t post_id;         // Set up the POST thread
   pthread_create(&post_id, &attr, post, NULL);
 
   // Loop forever or until CTRL-C
   while (keepRunning) {
 
     sleep(1);  // Sleep for 1 second
+    printf("%d\n", getSecNum());
 
     // Every 20 seconds, give some output
     if (getSecNum() % 20 == 0) {

@@ -46,52 +46,6 @@ static int flashTime = 10;
 
 
 /*
- * geigerSetup: Initializes the Geiger circuit.
- *****************************************************************************
- */
-int geigerSetup(void) {
-
-  wiringPiSetup(); 
-  
-  // Set up the attribute that allows our threads to run detached
-  pthread_attr_t attr;
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  
-  turnHVOn = false;          // Do not turn HV on at this time
-  HVisOn = false;            // HV is off by default
-  pinMode(gatePin, OUTPUT);  // Set up MOSFET gate pin
-  pthread_t HV_id;           // Set up the HV control thread
-  pthread_create(&HV_id, &attr, HVControl, NULL);
-
-  LEDTime = 0;               // Initialize the LED
-  LEDisOn = false;           // LED is off by default
-  pinMode(ledPin, OUTPUT);   // Set up LED pin
-  pthread_t led_id;          // Set up the LED blink thread
-  pthread_create(&led_id, &attr, blinkLED, NULL);
-
-  // Configure wiringPi to detect pulses with a falling
-  // edge on the Geiger pin
-  wiringPiISR(geigerPin, INT_EDGE_FALLING, &countInterrupt);
-  pullUpDnControl(geigerPin, PUD_OFF);  // Pull up/down resistors off
-
-  // Initialize counting variables
-  hourNum   = -1;
-  minNum    = -1;
-  secNum    = 0;
-
-  // Initialize the counting arrays
-  for (int i=0; i < size; i++) {
-    sec[i] = min[i] = hour[i] = 0;
-  }
-
-  pthread_t count_id;  // Set up the counting thread
-  pthread_create(&count_id, &attr, count, NULL);
-
-  return 0;
-}
-
-/*
  * countInterrupt: Runs when a count is detected.
  *****************************************************************************
  */
@@ -375,4 +329,50 @@ void *HVControl (void *vargp) {
 
   HVOff();
   pthread_exit(NULL);
+}
+
+/*
+ * geigerSetup: Initializes the Geiger circuit.
+ *****************************************************************************
+ */
+int geigerSetup(void) {
+
+  wiringPiSetup(); 
+
+  // Set up the attribute that allows our threads to run detached
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+  turnHVOn = false;          // Do not turn HV on at this time
+  HVisOn = false;            // HV is off by default
+  pinMode(gatePin, OUTPUT);  // Set up MOSFET gate pin
+  pthread_t HV_id;           // Set up the HV control thread
+  pthread_create(&HV_id, &attr, HVControl, NULL);
+
+  LEDTime = 0;               // Initialize the LED
+  LEDisOn = false;           // LED is off by default
+  pinMode(ledPin, OUTPUT);   // Set up LED pin
+  pthread_t led_id;          // Set up the LED blink thread
+  pthread_create(&led_id, &attr, blinkLED, NULL);
+
+  // Configure wiringPi to detect pulses with a falling
+  // edge on the Geiger pin
+  wiringPiISR(geigerPin, INT_EDGE_FALLING, &countInterrupt);
+  pullUpDnControl(geigerPin, PUD_OFF);  // Pull up/down resistors off
+
+  // Initialize counting variables
+  hourNum   = -1;
+  minNum    = -1;
+  secNum    = 0;
+
+  // Initialize the counting arrays
+  for (int i=0; i < size; i++) {
+    sec[i] = min[i] = hour[i] = 0;
+  }
+
+  pthread_t count_id;  // Set up the counting thread
+  pthread_create(&count_id, &attr, count, NULL);
+
+  return 0;
 }

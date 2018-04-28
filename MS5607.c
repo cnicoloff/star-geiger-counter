@@ -38,29 +38,6 @@ static volatile unsigned int C[8] = {0};   // Altimeter calibration coefficients
 static volatile float QFF = 1010;          // QFF pressure at sea level, mbar
 
 /*
- * altimeterSetup(): Setup altimeter
- *                   Returns -1 if there is an error
- *****************************************************************************
- */
-
-int altimeterSetup(void) {
-  // Initialize the altimeter
-  if (altimeterInit() < 0)
-    return -1;
-  else {
-    altimeterReset();              // Reset after power on
-
-    // Get altimeter factory calibration coefficients
-    for (int i=0; i < 8; i++) {
-      C[i] = altimeterCalibration(i);
-      printf("%d: %d ", i, C[i]);
-    }
-    printf("\n");
-  }
-  return 0;
-}
-
-/*
  * altimeterInit(): Initialize the altimeter
  *                  Returns the Linux file-descriptor for the device
  *                  Returns -1 if there is an error
@@ -303,9 +280,9 @@ double secondOrderP(unsigned long T, unsigned long P) {
   double offset, offset2 = 0.0;       // offset at actual temperature
   double sens, sens2 = 0.0;           // sensitivity at actual temperature
 
-  offset = calcOffset(coeffs);
-  sens = calcSens(coeffs);
-  dT = calcDT(coeffs);
+  offset = calcOffset(T);
+  sens = calcSens(T);
+  dT = calcDT(T);
 
   // Temperature less than 20 C
   if (temp < 20.0) {
@@ -380,3 +357,27 @@ double PtoAlt(double pressure, double temp) {
 
   return (R/g) * ((Ts + temp + 273.15) / 2.0) * log(QFF/pressure);
 }
+
+/*
+ * altimeterSetup(): Setup altimeter
+ *                   Returns -1 if there is an error
+ *****************************************************************************
+ */
+
+int altimeterSetup(void) {
+  // Initialize the altimeter
+  if (altimeterInit() < 0)
+    return -1;
+  else {
+    altimeterReset();              // Reset after power on
+
+    // Get altimeter factory calibration coefficients
+    for (int i=0; i < 8; i++) {
+      C[i] = altimeterCalibration(i);
+      printf("%d: %d ", i, C[i]);
+    }
+    printf("\n");
+  }
+  return 0;
+}
+

@@ -30,8 +30,8 @@ static volatile int elapsed;      // How many seconds have elapsed
 
 static volatile int LEDTime;      // How much time is left to light LED
 static volatile bool LEDisOn;     // Is LED on?
-static volatile bool keepRunning; // Signals when to exit
-static volatile bool turnHVOn;    // Signals when to turn the HV on
+//static volatile bool keepRunning; // Signals when to exit
+//static volatile bool turnHVOn;    // Signals when to turn the HV on
 static volatile bool HVisOn;      // Is HV on?
 
 // Initialize the GPIO pins.  Note that these are not the BCM GPIO pin 
@@ -366,7 +366,6 @@ int geigerSetup(void) {
   for (int i=0; i < size; i++) {
     sec[i] = min[i] = hour[i] = 0;
   }
-
 
   return 0;
 }

@@ -91,27 +91,24 @@ int main (void)
   //pthread_t post_id;         // Set up the POST thread
   //pthread_create(&post_id, &attr, post, NULL);
 
+  float uSv;
+  double T, P, T2, P2, alt;
+
+  HVOn();  // FIXME: Base this on altitude
+
   // Loop forever or until CTRL-C
   while (keepRunning) {
 
-    sleep(1);  // Sleep for 1 second
+    waitOneSec();  // Sleep until next second
 
-    // Every 20 seconds, give some output
-    if (getSecNum() % 20 == 0) {
-      float uSv = cpmTouSv(120);
-      double T = readTUncompensated();
-      double P = readPUncompensated();
-      double T2 = firstOrderT(T);
-      double P2 = secondOrderP(T, P);
-
-      // Write some output
-      printf("uSv/hr: %2.2f, T: %3.2f C (%3.2f F), P: %4.2f mbar, h: %7.2f m\n", uSv, T2, CtoF(T2), P2, PtoAlt(P2, T2));
-      HVOn();  // FIXME: Base this on altitude
-    }
-
-    // Every minute...
-    if (getSecNum() % 60 == 0) {
-    }
+    uSv = cpmTouSv(120);
+    T = readTUncompensated();
+    P = readPUncompensated();
+    T2 = roundPrecision(firstOrderT(T), 2);
+    P2 = roundPrecision(secondOrderP(T, P), 2);
+    alt = roundPrecision(PtoAlt(P2, T2), 1);
+    // Write some output
+    printf("uSv/hr: %2.2f, T: %3.2f C (%3.2f F), P: %4.2f mbar, h: %7.2f m\n", uSv, T2, CtoF(T2), P2, alt);
   }
 
   pthread_attr_destroy(&attr);  // Clean up

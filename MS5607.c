@@ -9,9 +9,6 @@
  *****************************************************************************
  */
 
-// FIXME: Sample temperature once and use it to make calculations, don't keep
-// sampling both in each function!
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -182,12 +179,24 @@ unsigned char crc4(unsigned int n_prom[]) {
   return (n_rem ^ 0x00);
 }
 
+double roundPrecision(double val, int precision) {
+  long p10 = pow(10, precision);
+  double valR;
+
+  valR = val * p10;
+  valR = ceil(valR);
+  valR /= p10;
+
+  printf("val: %f, valR: %f\n", val, valR);
+  return valR;
+}
+
 /*
  * readPUncompensated: Read the raw pressure data from the altimeter
  *****************************************************************************
  */
 unsigned long readPUncompensated(void) {
-  return altimeterADC(CMD_ADC_D1 + CMD_ADC_256);
+  return altimeterADC(CMD_ADC_D1 + CMD_ADC_4096);
 }
 
 /*
@@ -345,6 +354,7 @@ float mbartoInHg(double pressure) {
  * PtoAlt: Convert pressure to altitude
  *****************************************************************************
  */
+
 double PtoAlt(double pressure, double temp) {
   float R = 287.057;     // gas constant of air at sea level
   float g = 9.807;       // acceleration due to gravity, m/s^2
@@ -362,6 +372,7 @@ double PtoAlt(double pressure, double temp) {
  * Standard values: http://www-mdp.eng.cam.ac.uk/web/library/enginfo/aerothermal_dvd_only/aero/atmos/atmos.html
  *****************************************************************************
  */
+
 void setQFF(float latitude, float elevation, float height) {
   float R = 287.1;       // gas constant of air at sea level
   float g = 9.81;        // acceleration due to gravity, m/s^2

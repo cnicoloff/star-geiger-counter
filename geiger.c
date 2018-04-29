@@ -242,18 +242,28 @@ float cpmTouSv(int numSecs) {
   return uSv;
 }
 
+/*
+ * waitOneSec: Attempts to wait until the next whole second
+ *             Is accurate down to maybe 1-2ms
+ *****************************************************************************
+ */
 void waitOneSec(void) {
   struct timespec tim;
-  
+  struct timespec tim2;
+  long ns;      // current nanoseconds
+  long nsWait;  // how long to wait, in nanoseconds
+
+  // Get the current time
   clock_gettime(CLOCK_REALTIME, &tim);
-  
-  time_t ns; // nanoseconds
-  time_t s;  // seconds
-  
-  s  = tim.tv_sec;
+
   ns = tim.tv_nsec;
 
-  printf("Current time: %"PRIdMAX" s, %"PRIdMAX" ns\n", (intmax_t)s, (intmax_t)ns);
+  // Calculate how long to wait until the next second
+  nsWait = 999999999 - ns;
+
+  tim2.tv_sec = 0;        // zero seconds
+  tim2.tv_nsec = nsWait;  // some amount of nanoseconds
+  nanosleep(&tim2, NULL); // wait
 }
 
 /*
@@ -265,7 +275,7 @@ void *count (void *vargp) {
 
   while (keepRunning) {
     // FIXME: Make this more accurate
-    sleep(1);
+    //sleep(1);
     waitOneSec();
 
     // Increment the elapsed time counter
@@ -391,23 +401,33 @@ int geigerSetup(void) {
   return 0;
 }
 
+/*
+ * geigerStart: Starts the Geiger circuit and associated threads
+ *              DOES NOT START HV
+ *****************************************************************************
+ */
 void geigerStart() {
   keepRunning = true;           // Keep threads runnning
-  
+
   // Set up the attribute that allows our threads to run detached
   pthread_attr_t attr;
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  
+
   pthread_t led_id;             // Set up the LED blink thread
   pthread_create(&led_id, &attr, blinkLED, NULL);
 
   pthread_t count_id;           // Set up the counting thread
   pthread_create(&count_id, &attr, count, NULL);
-  
+
   pthread_attr_destroy(&attr);  // Clean up
 }
 
+/*
+ * geigerStop: Stops the Geiger circuit and associated threads
+ *             Turns off HV and LED
+ *****************************************************************************
+ */
 void geigerStop() {
   keepRunning = false;          // Stop running threads
   HVOff();                      // Make sure HV is off

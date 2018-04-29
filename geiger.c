@@ -359,9 +359,9 @@ void geigerSetTime(unsigned long seconds) {
   minNum    = numMins % size;
   secNum    = numSecs % size;
 
-  secs[secNum] = 0;
-  mins[minNum] = 0;
-  hours[hourNum] = 0;
+  sec[secNum] = 0;
+  min[minNum] = 0;
+  hour[hourNum] = 0;
   
   printf("geigerSetTime: %02d:%02d:%02d\n", hourNum, minNum, secNum);
 }

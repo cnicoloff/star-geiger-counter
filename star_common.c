@@ -16,16 +16,16 @@
 unsigned long getTimeMS(void) {
   struct timespec tim;
 
-    clock_gettime(CLOCK_REALTIME, &tim));
+    clock_gettime(CLOCK_REALTIME, &tim);
 
     /* seconds, converted to ms */
-    unsigned long ms = tms.tv_sec * 1000;
+    unsigned long ms = tim.tv_sec * 1000;
 
     /* Add full ms */
-    ms += tms.tv_nsec / 1000000;
+    ms += tim.tv_nsec / 1000000;
 
     /* round up if necessary */
-    if (tms.tv_nsec % 1000000 >= 500000) {
+    if (tim.tv_nsec % 1000000 >= 500000) {
         ++ms;
     }
     

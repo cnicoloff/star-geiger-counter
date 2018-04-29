@@ -94,18 +94,19 @@ int main (void)
 
   float uSv;
   double T, P, T2, P2, alt;
-  unsigned long ms;
+  unsigned long ms, ms2;
 
   HVOn();  // FIXME: Base this on altitude
   
   waitNextNanoSec(1000000000);  // Start with the next whole second
+  ms = getTimeMS();
 
   // Loop forever or until CTRL-C
   while (keepRunning) {
 
     waitNextNanoSec(1000000000);  // Sleep until next second
 
-    ms = getTimeMS();
+    ms2 = getTimeMS() - ms;
     uSv = cpmTouSv(120);
     T = readTUncompensated();
     P = readPUncompensated();

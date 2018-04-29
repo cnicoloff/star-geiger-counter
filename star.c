@@ -97,6 +97,8 @@ int main (void)
   unsigned long ms;
 
   HVOn();  // FIXME: Base this on altitude
+  
+  waitNextNanoSec(1000000000);  // Start with the next whole second
 
   // Loop forever or until CTRL-C
   while (keepRunning) {

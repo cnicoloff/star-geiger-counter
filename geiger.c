@@ -249,6 +249,8 @@ float cpmTouSv(int numSecs) {
  */
 
 void *count (void *vargp) {
+  
+  waitNextNanoSec(1000000000);  // Start with the next whole second
 
   while (keepRunning) {
 

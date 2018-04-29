@@ -350,21 +350,21 @@ void *HVControl (void *vargp) {
  */
 void geigerSetTime(unsigned long seconds) {
   
-  int numHours = seconds / 3600;                             // Seconds to hours
-  int numMins = (seconds - (numHours * 3600)) / 60;            // Seconds to minutes
-  int numSecs = seconds - (numMins * 60) - (numHours * 3600);  // Remaining seconds
+  int numHours = (seconds / 3600) % size;                               // Seconds to hours
+  int numMins = ((seconds - (numHours * 3600)) / 60) % size;            // Seconds to minutes
+  int numSecs = (seconds - (numMins * 60) - (numHours * 3600)) % size;  // Remaining seconds
 
   // Set counting variables
-  if (numHours % size != hourNum) {
-    hourNum   = numHours % size;
+  if (numHours != hourNum) {
+    hourNum = numHours;
     hour[hourNum] = 0;
   }
-  if (numMins % size != minNum) {
-    minNum    = numMins % size;
+  if (numMins != minNum) {
+    minNum = numMins;
     min[minNum] = 0;
   }
-  if (numSecs % size != secNum) {
-    secNum    = numSecs % size;
+  if (numSecs != secNum) {
+    secNum = numSecs;
     sec[secNum] = 0;
   }
   

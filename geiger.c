@@ -187,17 +187,17 @@ int sumCounts(int numSecs) {
   numSecs = (numSecs - (numMins * 60) - (numHours * 3600)) % size;  // Remaining seconds
   
   // Sum hours
-  for (int i=0; i < numHours; i++) {
+  for (int i=0; i <= numHours; i++) {
     total += hour[getIndex(hourNum - i)];
   }
 
   // Sum minutes
-  for (int i=0; i < numMins; i++) {
+  for (int i=0; i <= numMins; i++) {
     total += min[getIndex(minNum - i)];
   }
 
   // Sum seconds
-  for (int i=0; i < numSecs; i++) {
+  for (int i=0; i <= numSecs; i++) {
     total += sec[getIndex(secNum - i)];
   }
 

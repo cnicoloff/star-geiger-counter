@@ -100,7 +100,7 @@ int main (void)
   // Loop forever or until CTRL-C
   while (keepRunning) {
 
-    waitOneSec();  // Sleep until next second
+    waitNextNanoSec(1000000000);  // Sleep until next second
 
     uSv = cpmTouSv(120);
     T = readTUncompensated();

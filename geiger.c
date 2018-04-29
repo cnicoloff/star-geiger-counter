@@ -18,6 +18,7 @@
 #include <math.h>
 #include <pthread.h>
 #include <wiringPi.h>
+#include "star_common.h"
 
 static int size = 60;             // Array size
 static volatile int secNum;       // Which index in the seconds array
@@ -243,30 +244,6 @@ float cpmTouSv(int numSecs) {
 }
 
 /*
- * waitOneSec: Attempts to wait until the next whole second
- *             Is accurate down to maybe 1-2ms
- *****************************************************************************
- */
-void waitOneSec(void) {
-  struct timespec tim;
-  struct timespec tim2;
-  long ns;      // current nanoseconds
-  long nsWait;  // how long to wait, in nanoseconds
-
-  // Get the current time
-  clock_gettime(CLOCK_REALTIME, &tim);
-
-  ns = tim.tv_nsec;
-
-  // Calculate how long to wait until the next second
-  nsWait = 999999999 - ns;
-
-  tim2.tv_sec = 0;        // zero seconds
-  tim2.tv_nsec = nsWait;  // some amount of nanoseconds
-  nanosleep(&tim2, NULL); // wait
-}
-
-/*
  * count: Thread to handle count_related activities.
  *****************************************************************************
  */
@@ -274,9 +251,8 @@ void waitOneSec(void) {
 void *count (void *vargp) {
 
   while (keepRunning) {
-    // FIXME: Make this more accurate
-    //sleep(1);
-    waitOneSec();
+
+    waitNextNanoSec(1000000000);
 
     // Increment the elapsed time counter
     // FIXME: Not currently in use

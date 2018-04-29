@@ -199,7 +199,6 @@ int sumCounts(int numSecs) {
 
   // Sum seconds
   for (int i=0; i < numSecs; i++) {
-    printf("secNum: %d\n", secNum - i);
     total += sec[getIndex(secNum - i)];
   }
 

@@ -179,10 +179,10 @@ int getIndex(int numIndex) {
 
 int sumCounts(int numSecs) {
 
-  int total = 0;                                           // Total counts
-  int numHours = numSecs / 3600;                           // Seconds to hours
-  int numMins = (numSecs - (numHours * 3600)) / 60;        // Seconds to minutes
-  numSecs = numSecs - (numMins * 60) - (numHours * 3600);  // Remaining seconds
+  int total = 0;                                                    // Total counts
+  int numHours = (numSecs / 3600) % size;                           // Seconds to hours
+  int numMins = ((numSecs - (numHours * 3600)) / 60) % size;        // Seconds to minutes
+  numSecs = (numSecs - (numMins * 60) - (numHours * 3600)) % size;  // Remaining seconds
 
   // Sum hours
   for (int i=0; i < numHours; i++) {

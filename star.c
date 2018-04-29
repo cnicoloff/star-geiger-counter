@@ -81,10 +81,6 @@ int main (void)
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
   keepRunning = true;        // Run forever unless halted
-  geigerSetup();             // Setup the Geiger circuit
-  geigerStart();             // Start the Geiger circuit
-
-  sleep(1);                  // Sleep 1s just so we don't power everything on at once
   altimeterSetup();          // Setup the altimeter
   setQFF(42.29, 45, 2);
   printf("QFF: %f\n", getQFF());
@@ -97,6 +93,9 @@ int main (void)
   unsigned long ms;
   float ms2;
 
+  sleep(1);                  // Sleep 1s just so we don't power everything on at once
+  geigerSetup();             // Setup the Geiger circuit
+  geigerStart();             // Start the Geiger circuit
   HVOn();  // FIXME: Base this on altitude
   
   waitNextNanoSec(1000000000);  // Start with the next whole second

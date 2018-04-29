@@ -48,7 +48,6 @@ void waitNextNanoSec(long interval) {
   // Calculate how long to wait until the next interval
   interval -= tim.tv_nsec;
   interval &= 999999999;
-  printf("nanosleep() interval: %ld\n", interval);
 
   tim2.tv_sec = 0;          // zero seconds
   tim2.tv_nsec = interval;  // some amount of nanoseconds
@@ -57,7 +56,6 @@ void waitNextNanoSec(long interval) {
   // If it is interrupted, it returns -1 and places
   // the remaining time into rem
   while (nanosleep(&tim2, &rem) < 0) {
-    printf("nanosleep() interrupted!\n");
     tim2 = rem;             // If any time remaining, wait some more
   }
 }

@@ -116,7 +116,7 @@ int main (void)
     P2 = roundPrecision(calcSecondOrderP(T, P), 2);
     alt = roundPrecision(calcAltitude(P2, T2), 1);
     // Write some output
-    printf("%.3f  uSv/hr: %2.2f, T: %3.2f C (%3.2f F), P: %4.2f mbar, h: %7.2f m\n", elapsed, uSv, T2, cvtCtoF(T2), P2, alt);
+    printf("Elapsed: %.3f  uSv/hr: %2.2f, T: %3.2f C (%3.2f F), P: %4.2f mbar, h: %7.1f m\n", elapsed, uSv, T2, cvtCtoF(T2), P2, alt);
 
     waitNextNanoSec(1000000000);  // Sleep until next second
   }

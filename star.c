@@ -127,7 +127,7 @@ int main (void)
     counts = sumCounts(1);
     geigerSetTime((long)elapsed);
     
-    if (elapsed % 5 == 0) {
+    if ((long)elapsed % 5 == 0) {
       fprintf(stdout, "Elapsed, Counts, T (Raw), T (1st, C), P (Raw), P (1st, mbar), P (2nd, mbar), Altitude (m, experimental)\n");
     }
     

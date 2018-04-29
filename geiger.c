@@ -287,6 +287,8 @@ void *count (void *vargp) {
     }
 
     sec[secNum] = 0;  // Initialize the current second data to zero
+    
+    printf("%2d:%2d:%2d\n", hourNum, minNum, secNum);
 
   }
 

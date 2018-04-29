@@ -34,7 +34,7 @@ unsigned long getTimeMS(void) {
 
 /*
  * waitNextNanoSec: Attempts to wait until the next whole interval, accurate to
- *                  maybe 1-2ms.  The maximum interval is 1s.
+ *                  maybe 10-20ms.  The maximum interval is 1s.
  *
  *                  interval is specified in nanoseconds
  *****************************************************************************

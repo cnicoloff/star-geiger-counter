@@ -88,6 +88,12 @@ int main (void)
   //pthread_t post_id;         // Set up the POST thread
   //pthread_create(&post_id, &attr, post, NULL);
 
+  pthread_t led_id;          // Set up the LED blink thread
+  pthread_create(&led_id, &attr, blinkLED, NULL);
+  
+  pthread_t count_id;        // Set up the counting thread
+  pthread_create(&count_id, &attr, count, NULL);
+
   // Loop forever or until CTRL-C
   while (keepRunning) {
 

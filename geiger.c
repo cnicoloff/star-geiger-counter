@@ -342,11 +342,6 @@ int geigerSetup(void) {
 
   wiringPiSetup(); 
 
-  // Set up the attribute that allows our threads to run detached
-  pthread_attr_t attr;
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
   //turnHVOn = false;          // Do not turn HV on at this time
   HVisOn = false;            // HV is off by default
   pinMode(gatePin, OUTPUT);  // Set up MOSFET gate pin
@@ -356,8 +351,6 @@ int geigerSetup(void) {
   LEDTime = 0;               // Initialize the LED
   LEDisOn = false;           // LED is off by default
   pinMode(ledPin, OUTPUT);   // Set up LED pin
-  pthread_t led_id;          // Set up the LED blink thread
-  pthread_create(&led_id, &attr, blinkLED, NULL);
 
   // Configure wiringPi to detect pulses with a falling
   // edge on the Geiger pin
@@ -374,8 +367,6 @@ int geigerSetup(void) {
     sec[i] = min[i] = hour[i] = 0;
   }
 
-  pthread_t count_id;  // Set up the counting thread
-  pthread_create(&count_id, &attr, count, NULL);
 
   return 0;
 }

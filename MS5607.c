@@ -9,9 +9,6 @@
  *****************************************************************************
  */
 
-// FIXME: Sample temperature once and use it to make calculations, don't keep
-// sampling both in each function!
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -75,6 +72,7 @@ int altimeterReset(void) {
  *                         acquired in two parts.
  *****************************************************************************
  */
+ 
 unsigned int altimeterCalibration(char coeffNum) {
   unsigned char buffer[5] = {0};
   unsigned int rC = 0;
@@ -101,6 +99,7 @@ unsigned int altimeterCalibration(char coeffNum) {
  *                 in three parts.
  *****************************************************************************
  */
+ 
 unsigned long altimeterADC(char cmd) {
 
   unsigned char buffer[5] = {0};            // Set up a buffer
@@ -147,6 +146,7 @@ unsigned long altimeterADC(char cmd) {
  * crc4(): This is a CRC check
  *****************************************************************************
  */
+ 
 unsigned char crc4(unsigned int n_prom[]) {
   int cnt;                // simple counter
   unsigned int n_rem;     // crc reminder
@@ -186,6 +186,7 @@ unsigned char crc4(unsigned int n_prom[]) {
  * readPUncompensated: Read the raw pressure data from the altimeter
  *****************************************************************************
  */
+ 
 unsigned long readPUncompensated(void) {
   return altimeterADC(CMD_ADC_D1 + CMD_ADC_256);
 }
@@ -194,6 +195,7 @@ unsigned long readPUncompensated(void) {
  * readTUncompensated: Read the raw temperature data from the altimeter
  *****************************************************************************
  */
+ 
 unsigned long readTUncompensated(void) {
   return altimeterADC(CMD_ADC_D2 + CMD_ADC_256);
 }
@@ -203,6 +205,7 @@ unsigned long readTUncompensated(void) {
  *         temperature
  *****************************************************************************
  */
+ 
 double calcDT(unsigned long T) {
   return (T - C[5] * pow(2,8));
 }
@@ -211,6 +214,7 @@ double calcDT(unsigned long T) {
  * calcOffset: Calculate the offset at the actual temperature
  *****************************************************************************
  */
+ 
 double calcOffset(unsigned long T) {
   double dT = calcDT(T);
   return (C[2] * pow(2,17)) + (dT * C[4]) / pow(2,6);
@@ -220,6 +224,7 @@ double calcOffset(unsigned long T) {
  * calcSens: Calculate the sensitivity at the actual temperature
  *****************************************************************************
  */
+ 
 double calcSens(unsigned long T) {
   double dT = calcDT(T);
   return (C[1] * pow(2,16)) + (dT * C[3]) / pow(2,7);
@@ -230,6 +235,7 @@ double calcSens(unsigned long T) {
  *              order algorithm.
  *****************************************************************************
  */
+ 
 double firstOrderP(unsigned long T, unsigned long P) {
   double Pcomp = 0.0; // compensated temperature value
   double offset;      // offset at actual temperature
@@ -250,6 +256,7 @@ double firstOrderP(unsigned long T, unsigned long P) {
  *              order algorithm.
  *****************************************************************************
  */
+ 
 double firstOrderT(unsigned long T) {
   double Tcomp = 0.0; // compensated temperature value
   double dT;          // difference between actual and measured temperature
@@ -267,6 +274,7 @@ double firstOrderT(unsigned long T) {
  *               order non-linear algorithm.
  *****************************************************************************
  */
+ 
 double secondOrderP(unsigned long T, unsigned long P) {
   double Pcomp = 0.0;                 // compensated pressure value
   double temp = firstOrderT(T);       // first order temperature value
@@ -279,24 +287,22 @@ double secondOrderP(unsigned long T, unsigned long P) {
   sens = calcSens(T);
   dT = calcDT(T);
 
-  // Temperature less than 20 C
+  // Temperature less than 20C
   if (temp < 20.0) {
     temp2 = pow(dT,2) / pow(2,31);
     offset2 = 61 * pow((temp - 2000),2) / pow(2,4);
     sens2 = 2 * pow((temp - 2000),2);
 
-    // Temperature less than -15 C
+    // Temperature less than -15C
     if (temp < -15) {
       offset2 = offset2 + 15 * pow((temp + 1500),2);
       sens2 = sens2 + 8 * pow((temp + 1500), 2);
     }
   }
 
-  // Temperature greater than 20 C
+  // Temperature greater than 20C
   else {
-    temp2 = 0;
-    offset2 = 0;
-    sens2 = 0;
+    temp2 = offset2 = sens2 = 0;
   }
 
   temp = temp - temp2;
@@ -313,6 +319,7 @@ double secondOrderP(unsigned long T, unsigned long P) {
  * tempCtoF: Convert C to F
  *****************************************************************************
  */
+
 float CtoF(double temp) {
   return temp * 9.0/5.0 + 32;
 }
@@ -321,31 +328,17 @@ float CtoF(double temp) {
  * mbartoInHg: Convert pressure from mbar to in hg
  *****************************************************************************
  */
+
 float mbartoInHg(double pressure) {
   return pressure * 0.02953;
 }
 
 /*
- * setQFF: Set the pressure at sea level to QFF
- *
- * QFF is the MSL pressure derived from local meteorological station
- * conditions. This is the altimeter setting that is intended to produce
- * correct altitude indication (i.e., no error) on an altimeter at the
- * actual sea level elevation.
- *
- * See: https://weather.us/observations/pressure-qff.html
+ * getAltitude: Convert pressure and temperature to altitude
  *****************************************************************************
  */
-//void setQFF(double pressure) {
-//  QFF = pressure;
-//}
 
-
-/*
- * PtoAlt: Convert pressure to altitude
- *****************************************************************************
- */
-double PtoAlt(double pressure, double temp) {
+ double PtoAlt(double pressure, double temp) {
   float R = 287.057;     // gas constant of air at sea level
   float g = 9.807;       // acceleration due to gravity, m/s^2
   float Ts = 288.15;     // temperature at sea level, K
@@ -362,19 +355,21 @@ double PtoAlt(double pressure, double temp) {
  * Standard values: http://www-mdp.eng.cam.ac.uk/web/library/enginfo/aerothermal_dvd_only/aero/atmos/atmos.html
  *****************************************************************************
  */
-void setQFF(float latitude, float elevation, float height) {
+
+ void setQFF(float latitude, float elevation, float height) {
   float R = 287.1;       // gas constant of air at sea level
   float g = 9.81;        // acceleration due to gravity, m/s^2
   float t = 288.2;       // standard temperature at sea level
   double T1 = 0.0;
 
-  double T = readTUncompensated();
-  double P = readPUncompensated();
-  double Tcomp = firstOrderT(T);
-  double Pcomp = secondOrderP(T, P);
+  double T = readTUncompensated();  // Read the raw temperature value
+  double P = readPUncompensated();  // Read the raw pressure value
+  double Tcomp = roundPrecision(firstOrderT(T), 2);      // Get the first order temperature correction
+  double Pcomp = roundPrecision(secondOrderP(T, P), 1);  // Get the second order pressure correction
 
-  double QFE = Pcomp *(1 + ((g * height) / (R * t)));
+  double QFE = Pcomp *(1 + ((g * height) / (R * t)));    // Calculate QFE
 
+  // Adjust Tcomp
   if (Tcomp < -7.0)
     T1 = 0.5 * Tcomp + 275;
   else if (Tcomp < 2.0)
@@ -382,10 +377,16 @@ void setQFF(float latitude, float elevation, float height) {
   else
     T1 = 1.07 * Tcomp + 274.5;
 
+  // Calculate QFF
   QFF = QFE * exp((elevation * 0.034163 * (1 - 0.0026373 * cos(latitude)))/T1);
 }
 
-float getQFF() {
+/*
+ * getQFF: Get the QFF value
+ *****************************************************************************
+ */
+ 
+ float getQFF() {
   return QFF;
 }
 

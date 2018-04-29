@@ -54,7 +54,7 @@ void waitNextNanoSec(long interval) {
   // If it is interrupted, it returns -1 and places
   // the remaining time into rem
   while (nanosleep(&tim2, &rem) < 0) {
-    &tim2 = &rem;           // If any time remaining, wait some more
+    tim2 = rem;             // If any time remaining, wait some more
   }
 }
 

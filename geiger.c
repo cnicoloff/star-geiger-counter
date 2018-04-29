@@ -243,8 +243,17 @@ float cpmTouSv(int numSecs) {
 }
 
 void waitOneSec(void) {
-  unsigned int curTime = time(0);
-  printf("Current time: %d", curTime);
+  struct timespec tim;
+  
+  clock_gettime(CLOCK_REALTIME, &tim);
+  
+  time_t ns; // nanoseconds
+  time_t s;  // seconds
+  
+  s  = tim.tv_sec;
+  ns = tim.tv_nsec;
+
+  printf("Current time: %"PRIdMAX" s, %"PRIdMAX" ns\n", (intmax_t)s, (intmax_t)ns);
 }
 
 /*

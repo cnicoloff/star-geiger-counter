@@ -355,13 +355,18 @@ void geigerSetTime(unsigned long seconds) {
   int numSecs = seconds - (numMins * 60) - (numHours * 3600);  // Remaining seconds
 
   // Set counting variables
-  hourNum   = numHours % size;
-  minNum    = numMins % size;
-  secNum    = numSecs % size;
-
-  sec[secNum] = 0;
-  min[minNum] = 0;
-  hour[hourNum] = 0;
+  if (numHours % size != hourNum) {
+    hourNum   = numHours % size;
+    hour[hourNum] = 0;
+  }
+  if (numMins % size != minNum) {
+    minNum    = numMins % size;
+    min[minNum] = 0;
+  }
+  if (numSecs % size != secNum) {
+    secNum    = numSecs % size;
+    sec[secNum] = 0;
+  }
   
   printf("geigerSetTime: %02d:%02d:%02d\n", hourNum, minNum, secNum);
 }

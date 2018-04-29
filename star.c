@@ -83,7 +83,7 @@ int main (void)
   keepRunning = true;        // Run forever unless halted
   altimeterSetup();          // Setup the altimeter
   
-  setQFF(42.29, 45, 2);
+  setQFF(42.29, 46, 1);
   printf("Calculated QFF = %f\n", getQFF());
 
   //pthread_t post_id;         // Set up the POST thread

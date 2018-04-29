@@ -252,6 +252,7 @@ void *count (void *vargp) {
 
     // Increment the seconds counter
     secNum++;
+    printf("secNum: %d", secNum);
 
     // Roll the seconds buffer
     if (secNum % size == 0) {
@@ -346,7 +347,7 @@ int geigerSetup(void) {
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-  turnHVOn = false;          // Do not turn HV on at this time
+  //turnHVOn = false;          // Do not turn HV on at this time
   HVisOn = false;            // HV is off by default
   pinMode(gatePin, OUTPUT);  // Set up MOSFET gate pin
   //pthread_t HV_id;           // Set up the HV control thread

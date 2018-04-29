@@ -182,18 +182,6 @@ unsigned char altimeterCRC4(unsigned int n_prom[]) {
   return (n_rem ^ 0x00);
 }
 
-double roundPrecision(double val, int precision) {
-  long p10 = pow(10, precision);
-  double valR;
-
-  valR = val * p10;
-  valR = ceil(valR);
-  valR /= p10;
-
-  printf("val: %f, valR: %f\n", val, valR);
-  return valR;
-}
-
 /*
  * readPUncompensated: Read the raw pressure data from the altimeter
  *****************************************************************************

@@ -81,6 +81,8 @@ int main (void)
 
   keepRunning = true;        // Run forever unless halted
   geigerSetup();             // Setup the Geiger circuit
+  geigerStart();             // Start the Geiger circuit
+
   sleep(1);                  // Sleep 1s just so we don't power everything on at once
   altimeterSetup();          // Setup the altimeter
   setQFF(42.29, 45, 2);
@@ -90,7 +92,7 @@ int main (void)
 
   pthread_t led_id;          // Set up the LED blink thread
   pthread_create(&led_id, &attr, blinkLED, NULL);
-  
+
   pthread_t count_id;        // Set up the counting thread
   pthread_create(&count_id, &attr, count, NULL);
 
@@ -98,7 +100,6 @@ int main (void)
   while (keepRunning) {
 
     sleep(1);  // Sleep for 1 second
-    printf("%d\n", getSecNum());
 
     // Every 20 seconds, give some output
     if (getSecNum() % 20 == 0) {
@@ -120,6 +121,7 @@ int main (void)
 
   fclose(opf);                  // Close the output file
   pthread_attr_destroy(&attr);  // Clean up
+  geigerStop();                 // Stop the Geiger circuit
   HVOff();                      // Make sure HV is off
   LEDOff();                     // Make sure LED is off
 

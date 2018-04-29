@@ -252,7 +252,6 @@ void *count (void *vargp) {
 
     // Increment the seconds counter
     secNum++;
-    printf("secNum: %d", secNum);
 
     // Roll the seconds buffer
     if (secNum % size == 0) {

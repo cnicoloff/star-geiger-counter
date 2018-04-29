@@ -98,15 +98,12 @@ int main (void)
   geigerStart();             // Start the Geiger circuit
   HVOn();                    // FIXME: Base this on altitude
   
-  waitNextNanoSec(1000000000);  // Start with the next whole second
-  ms = getTimeMS();             // Save the start time
+  ms = getTimeMS();          // Save the start time
 
   geigerReset();             // Reset the Geiger counting variables
 
   // Loop forever or until CTRL-C
   while (keepRunning) {
-
-    waitNextNanoSec(1000000000);  // Sleep until next second
 
     ms2 = (getTimeMS() - ms) / 1000.0;
     uSv = cpmTouSv(120);
@@ -117,6 +114,8 @@ int main (void)
     alt = roundPrecision(calcAltitude(P2, T2), 1);
     // Write some output
     printf("%.3f  uSv/hr: %2.2f, T: %3.2f C (%3.2f F), P: %4.2f mbar, h: %7.2f m\n", ms2, uSv, T2, cvtCtoF(T2), P2, alt);
+
+    waitNextNanoSec(1000000000);  // Sleep until next second
   }
 
   pthread_attr_destroy(&attr);  // Clean up

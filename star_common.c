@@ -44,15 +44,15 @@ void waitNextNanoSec(long interval) {
   struct timespec tim2;
 
   // Get the current time
-  clock_gettime(CLOCK_REALTIME, &tim);
+  clock_gettime(CLOCK_MONOTONIC, &tim);
 
   // Calculate how long to wait until the next interval
   interval -= tim.tv_nsec;
   interval &= 999999999;
 
-  tim2.tv_sec = 0;        // zero seconds
+  tim2.tv_sec = 0;          // zero seconds
   tim2.tv_nsec = interval;  // some amount of nanoseconds
-  nanosleep(&tim2, NULL); // wait
+  nanosleep(&tim2, NULL);   // wait
 }
 
 /*

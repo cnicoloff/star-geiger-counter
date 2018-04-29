@@ -252,8 +252,6 @@ void *count (void *vargp) {
   
   while (keepRunning) {
 
-    waitNextNanoSec(1000000000);
-
     // Increment the elapsed time counter
     // FIXME: Not currently in use
     elapsed++;
@@ -288,6 +286,7 @@ void *count (void *vargp) {
     
     printf("%02d:%02d:%02d\n", hourNum, minNum, secNum);
 
+    waitNextNanoSec(1000000000);
   }
 
   pthread_exit(NULL);

@@ -250,8 +250,6 @@ float cpmTouSv(int numSecs) {
 
 void *count (void *vargp) {
   
-  waitNextNanoSec(1000000000);  // Start with the next whole second
-
   while (keepRunning) {
 
     waitNextNanoSec(1000000000);
@@ -288,7 +286,7 @@ void *count (void *vargp) {
 
     sec[secNum] = 0;  // Initialize the current second data to zero
     
-    printf("%2d:%2d:%2d\n", hourNum, minNum, secNum);
+    printf("%02d:%02d:%02d\n", hourNum, minNum, secNum);
 
   }
 
@@ -369,8 +367,8 @@ int geigerSetup(void) {
   pullUpDnControl(geigerPin, PUD_OFF);  // Pull up/down resistors off
 
   // Initialize counting variables
-  hourNum   = -1;
-  minNum    = -1;
+  hourNum   = 0;
+  minNum    = 0;
   secNum    = 0;
 
   // Initialize the counting arrays

@@ -155,7 +155,7 @@ int getHourNum(void) {
 }
 
 /*
- * getIndex: Get the counts for a particular index from the circular buffer.
+ * getIndex: Get a particular index from the circular buffer.
  *****************************************************************************
  */
 

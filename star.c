@@ -104,6 +104,7 @@ int main (void)
   double T, P, T2, P2, alt;
   unsigned long ms;
   float elapsed;
+  int counts;
 
   sleep(1);                  // Sleep 1s just so we don't power everything on at once
   geigerSetup();             // Setup the Geiger circuit
@@ -118,6 +119,7 @@ int main (void)
   while (keepRunning) {
 
     elapsed = (getTimeMS() - ms) / 1000.0;
+    counts = sumCounts(1);
     geigerSetTime((long)elapsed);
     
     uSv = cpmTouSv(120);
@@ -127,8 +129,8 @@ int main (void)
     P2 = roundPrecision(calcSecondOrderP(T, P), 2);
     alt = roundPrecision(calcAltitude(P2, T2), 1);
     // Write some output
-    fprintf(stdout, "Elapsed: %.3f  uSv/hr: %2.2f, T: %3.1f C (%3.1f F), P: %.0f mbar, h: %.0f m\n", elapsed, uSv, T2, cvtCtoF(T2), P2, alt);
-    fprintf(errf, "Elapsed: %.3f  uSv/hr: %2.2f, T: %3.1f C (%3.1f F), P: %.0f mbar, h: %.0f m\n", elapsed, uSv, T2, cvtCtoF(T2), P2, alt);
+    fprintf(stdout, "Elapsed: %.3f  Counts: %d, T: %3.1f C (%3.1f F), P: %.0f mbar, h: %.0f m\n", elapsed, counts, T2, cvtCtoF(T2), P2, alt);
+    fprintf(errf, "Elapsed: %.3f  uSv/hr: %d, T: %3.1f C (%3.1f F), P: %.0f mbar, h: %.0f m\n", elapsed, counts, T2, cvtCtoF(T2), P2, alt);
 
     waitNextNanoSec(1000000000);  // Sleep until next second
   }

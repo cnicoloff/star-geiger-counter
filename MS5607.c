@@ -143,11 +143,11 @@ unsigned long altimeterADC(char cmd) {
 }
 
 /*
- * crc4(): This is a CRC check
+ * altimeterCRC4(): This is a CRC check
  *****************************************************************************
  */
  
-unsigned char crc4(unsigned int n_prom[]) {
+unsigned char altimeterCRC4(unsigned int n_prom[]) {
   int cnt;                // simple counter
   unsigned int n_rem;     // crc reminder
   unsigned int crc_read;  // original value of the crc
@@ -243,12 +243,12 @@ double calcSens(unsigned long T) {
 }
 
 /*
- * firstOrderP: Calculate the first order pressure using the MS5607 1st
- *              order algorithm.
+ * calcFirstOrderP: Calculate the first order pressure using the MS5607 1st
+ *                  order algorithm.
  *****************************************************************************
  */
  
-double firstOrderP(unsigned long T, unsigned long P) {
+double calcFirstOrderP(unsigned long T, unsigned long P) {
   double Pcomp = 0.0; // compensated temperature value
   double offset;      // offset at actual temperature
   double sens;        // sensitivity at actual temperature
@@ -257,19 +257,18 @@ double firstOrderP(unsigned long T, unsigned long P) {
   sens = calcSens(T);
 
   // calculate 1st order pressure (MS5607 1st order algorithm)
-
   Pcomp = (((P * sens) / pow(2,21) - offset) / pow(2,15)) / 100;
 
   return Pcomp;
 }
 
 /*
- * firstOrderT: Calculate the first order temperature using the MS5607 1st
- *              order algorithm.
+ * calcFirstOrderT: Calculate the first order temperature using the MS5607 1st
+ *                  order algorithm.
  *****************************************************************************
  */
  
-double firstOrderT(unsigned long T) {
+double calcFirstOrderT(unsigned long T) {
   double Tcomp = 0.0; // compensated temperature value
   double dT;          // difference between actual and measured temperature
 
@@ -282,12 +281,12 @@ double firstOrderT(unsigned long T) {
 }
 
 /*
- * secondOrderP: Calculate the second order pressure using the MS5607 2nd
- *               order non-linear algorithm.
+ * calcSecondOrderP: Calculate the second order pressure using the MS5607 2nd
+ *                   order non-linear algorithm.
  *****************************************************************************
  */
  
-double secondOrderP(unsigned long T, unsigned long P) {
+double calcSecondOrderP(unsigned long T, unsigned long P) {
   double Pcomp = 0.0;                 // compensated pressure value
   double temp = firstOrderT(T);       // first order temperature value
   double temp2 = 0.0;                 // ??
@@ -317,9 +316,10 @@ double secondOrderP(unsigned long T, unsigned long P) {
     temp2 = offset2 = sens2 = 0;
   }
 
-  temp = temp - temp2;
-  offset = offset - offset2;
-  sens = sens - sens2;
+  // Subtract adjustments
+  temp -= temp2;
+  offset -= offset2;
+  sens -= sens2;
 
   // calculate 2nd order pressure (MS5607 2nd order non-linear algorithm)
   Pcomp = (((P * sens) / pow(2,21) - offset) / pow(2,15)) / 100;
@@ -328,29 +328,11 @@ double secondOrderP(unsigned long T, unsigned long P) {
 }
 
 /*
- * tempCtoF: Convert C to F
+ * calcAltitude: Convert pressure and temperature to altitude
  *****************************************************************************
  */
 
-float CtoF(double temp) {
-  return temp * 9.0/5.0 + 32;
-}
-
-/*
- * mbartoInHg: Convert pressure from mbar to in hg
- *****************************************************************************
- */
-
-float mbartoInHg(double pressure) {
-  return pressure * 0.02953;
-}
-
-/*
- * getAltitude: Convert pressure and temperature to altitude
- *****************************************************************************
- */
-
- double getAltitude(double pressure, double temp) {
+ double calcAltitude(double pressure, double temp) {
   float R = 287.057;     // gas constant of air at sea level
   float g = 9.807;       // acceleration due to gravity, m/s^2
   float Ts = 288.15;     // temperature at sea level, K
@@ -374,10 +356,10 @@ void setQFF(float latitude, float elevation, float height) {
   float t = 288.2;       // standard temperature at sea level
   double T1 = 0.0;
 
-  double T = readTUncompensated();  // Read the raw temperature value
-  double P = readPUncompensated();  // Read the raw pressure value
-  double Tcomp = roundPrecision(firstOrderT(T), 2);      // Get the first order temperature correction
-  double Pcomp = roundPrecision(secondOrderP(T, P), 1);  // Get the second order pressure correction
+  double T = readTUncompensated();   // Read the raw temperature value
+  double P = readPUncompensated();   // Read the raw pressure value
+  double Tcomp = firstOrderT(T);     // Get the first order temperature correction
+  double Pcomp = secondOrderP(T, P); // Get the second order pressure correction
 
   double QFE = Pcomp *(1 + ((g * height) / (R * t)));    // Calculate QFE
 

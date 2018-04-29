@@ -17,6 +17,7 @@
 #include <time.h>
 #include <math.h>
 #include <pthread.h>
+#include "star_common.h"
 #include "geiger.h"
 #include "MS5607.h"
 

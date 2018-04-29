@@ -14,6 +14,8 @@
 
 
 unsigned long getTimeMS(void) {
+  struct timespec tim;
+  
   clock_gettime(CLOCK_REALTIME, &tim);
 
   /* seconds, converted to ms */
@@ -41,7 +43,7 @@ void waitNextNanoSec(long interval) {
   struct timespec tim, tim2, rem;
 
   // Get the current time
-  clock_gettime(CLOCK_MONOTONIC, &tim);
+  clock_gettime(CLOCK_REALTIME, &tim);
 
   // Calculate how long to wait until the next interval
   interval -= tim.tv_nsec;

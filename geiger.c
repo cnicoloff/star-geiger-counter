@@ -178,6 +178,8 @@ int getIndex(int numIndex) {
  */
 
 int sumCounts(int numSecs) {
+  
+  // FIXME: This function misbehaves at T=numSecs!
 
   int total = 0;                                                    // Total counts
   int numHours = (numSecs / 3600) % size;                           // Seconds to hours

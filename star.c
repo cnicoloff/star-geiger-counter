@@ -114,7 +114,7 @@ int main (void)
     P2 = roundPrecision(calcSecondOrderP(T, P), 2);
     alt = roundPrecision(calcAltitude(P2, T2), 1);
     // Write some output
-    printf("%ld  uSv/hr: %2.2f, T: %3.2f C (%3.2f F), P: %4.2f mbar, h: %7.2f m\n", ms, uSv, T2, cvtCtoF(T2), P2, alt);
+    printf("%ld  uSv/hr: %2.2f, T: %3.2f C (%3.2f F), P: %4.2f mbar, h: %7.2f m\n", ms2, uSv, T2, cvtCtoF(T2), P2, alt);
   }
 
   pthread_attr_destroy(&attr);  // Clean up

@@ -67,7 +67,7 @@ int main (void)
   // Define the output file
   FILE *csvf;
   char csvfname[] = "out.txt";
-  csvf = fopen(opfname, "awb");  // Attempt to open our output file, write+binary, append
+  csvf = fopen(csvfname, "awb");  // Attempt to open our output file, write+binary, append
 
   // If we failed to open the file, complain and exit
   if (csvf == NULL) {

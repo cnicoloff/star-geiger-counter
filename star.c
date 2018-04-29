@@ -94,7 +94,8 @@ int main (void)
 
   float uSv;
   double T, P, T2, P2, alt;
-  unsigned long ms, ms2;
+  unsigned long ms;
+  float ms2;
 
   HVOn();  // FIXME: Base this on altitude
   
@@ -106,7 +107,7 @@ int main (void)
 
     waitNextNanoSec(1000000000);  // Sleep until next second
 
-    ms2 = getTimeMS() - ms;
+    ms2 = (getTimeMS() - ms) / 1000.0;
     uSv = cpmTouSv(120);
     T = readTUncompensated();
     P = readPUncompensated();
@@ -114,7 +115,7 @@ int main (void)
     P2 = roundPrecision(calcSecondOrderP(T, P), 2);
     alt = roundPrecision(calcAltitude(P2, T2), 1);
     // Write some output
-    printf("%ld  uSv/hr: %2.2f, T: %3.2f C (%3.2f F), P: %4.2f mbar, h: %7.2f m\n", ms2, uSv, T2, cvtCtoF(T2), P2, alt);
+    printf("%.3f  uSv/hr: %2.2f, T: %3.2f C (%3.2f F), P: %4.2f mbar, h: %7.2f m\n", ms2, uSv, T2, cvtCtoF(T2), P2, alt);
   }
 
   pthread_attr_destroy(&attr);  // Clean up

@@ -288,7 +288,7 @@ double calcFirstOrderT(unsigned long T) {
  
 double calcSecondOrderP(unsigned long T, unsigned long P) {
   double Pcomp = 0.0;                 // compensated pressure value
-  double temp = firstOrderT(T);       // first order temperature value
+  double temp = calcFirstOrderT(T);   // first order temperature value
   double temp2 = 0.0;                 // ??
   double dT;                          // difference between actual and measured temperature
   double offset, offset2 = 0.0;       // offset at actual temperature
@@ -356,10 +356,10 @@ void setQFF(float latitude, float elevation, float height) {
   float t = 288.2;       // standard temperature at sea level
   double T1 = 0.0;
 
-  double T = readTUncompensated();   // Read the raw temperature value
-  double P = readPUncompensated();   // Read the raw pressure value
-  double Tcomp = firstOrderT(T);     // Get the first order temperature correction
-  double Pcomp = secondOrderP(T, P); // Get the second order pressure correction
+  double T = readTUncompensated();       // Read the raw temperature value
+  double P = readPUncompensated();       // Read the raw pressure value
+  double Tcomp = calcFirstOrderT(T);     // Get the first order temperature correction
+  double Pcomp = calcSecondOrderP(T, P); // Get the second order pressure correction
 
   double QFE = Pcomp *(1 + ((g * height) / (R * t)));    // Calculate QFE
 

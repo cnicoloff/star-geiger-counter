@@ -105,11 +105,11 @@ int main (void)
     uSv = cpmTouSv(120);
     T = readTUncompensated();
     P = readPUncompensated();
-    T2 = roundPrecision(firstOrderT(T), 2);
-    P2 = roundPrecision(secondOrderP(T, P), 2);
+    T2 = roundPrecision(calcFirstOrderT(T), 2);
+    P2 = roundPrecision(calcSecondOrderP(T, P), 2);
     alt = roundPrecision(getAltitude(P2, T2), 1);
     // Write some output
-    printf("uSv/hr: %2.2f, T: %3.2f C (%3.2f F), P: %4.2f mbar, h: %7.2f m\n", uSv, T2, CtoF(T2), P2, alt);
+    printf("uSv/hr: %2.2f, T: %3.2f C (%3.2f F), P: %4.2f mbar, h: %7.2f m\n", uSv, T2, cvtCtoF(T2), P2, alt);
   }
 
   pthread_attr_destroy(&attr);  // Clean up

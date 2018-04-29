@@ -75,10 +75,7 @@ int main (void)
     exit(1);
   }
   
-  fprintf(csvf, "Elapsed, Counts, T (Raw), T (1st, C), P (Raw), P (1st, mbar), P (2nd, mbar), Altitude (m, experimental)\n");
-  fprintf(stdout, "Elapsed, Counts, T (Raw), T (1st, C), P (Raw), P (1st, mbar), P (2nd, mbar), Altitude (m, experimental)\n");
-
-    // Define the log file
+  // Define the log file
   FILE *errf;
   char errfname[] = "error.txt";
   errf = fopen(errfname, "aw");  // Attempt to open our log file, write, append
@@ -120,12 +117,19 @@ int main (void)
 
   geigerReset();             // Reset the Geiger counting variables
 
+  fprintf(csvf, "Elapsed, Counts, T (Raw), T (1st, C), P (Raw), P (1st, mbar), P (2nd, mbar), Altitude (m, experimental)\n");
+  fprintf(stdout, "Elapsed, Counts, T (Raw), T (1st, C), P (Raw), P (1st, mbar), P (2nd, mbar), Altitude (m, experimental)\n");
+
   // Loop forever or until CTRL-C
   while (keepRunning) {
 
     elapsed = (getTimeMS() - ms) / 1000.0;
     counts = sumCounts(1);
     geigerSetTime((long)elapsed);
+    
+    if (elapsed % 5 == 0) {
+      fprintf(stdout, "Elapsed, Counts, T (Raw), T (1st, C), P (Raw), P (1st, mbar), P (2nd, mbar), Altitude (m, experimental)\n");
+    }
     
     //uSv = cpmTouSv(120);
     T = readTUncompensated();

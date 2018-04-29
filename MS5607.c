@@ -350,16 +350,7 @@ float mbartoInHg(double pressure) {
  *****************************************************************************
  */
 
-<<<<<<< HEAD
-/*
- * PtoAlt: Convert pressure to altitude
- *****************************************************************************
- */
-
-double PtoAlt(double pressure, double temp) {
-=======
  double getAltitude(double pressure, double temp) {
->>>>>>> 14a24c0d5946fde31fe31790fa3f7a55704ac393
   float R = 287.057;     // gas constant of air at sea level
   float g = 9.807;       // acceleration due to gravity, m/s^2
   float Ts = 288.15;     // temperature at sea level, K
@@ -377,11 +368,7 @@ double PtoAlt(double pressure, double temp) {
  *****************************************************************************
  */
 
-<<<<<<< HEAD
 void setQFF(float latitude, float elevation, float height) {
-=======
- void setQFF(float latitude, float elevation, float height) {
->>>>>>> 14a24c0d5946fde31fe31790fa3f7a55704ac393
   float R = 287.1;       // gas constant of air at sea level
   float g = 9.81;        // acceleration due to gravity, m/s^2
   float t = 288.2;       // standard temperature at sea level

@@ -370,9 +370,17 @@ int geigerSetup(void) {
 }
 
 void geigerStart() {
-  keepRunning = true;
+  keepRunning = true;        // Keep threads runnning
+  
+  pthread_t led_id;          // Set up the LED blink thread
+  pthread_create(&led_id, &attr, blinkLED, NULL);
+
+  pthread_t count_id;        // Set up the counting thread
+  pthread_create(&count_id, &attr, count, NULL);
 }
 
 void geigerStop() {
-  keepRunning = false;
+  keepRunning = false;          // Stop running threads
+  HVOff();                      // Make sure HV is off
+  LEDOff();                     // Make sure LED is off
 }

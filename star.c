@@ -90,12 +90,6 @@ int main (void)
   //pthread_t post_id;         // Set up the POST thread
   //pthread_create(&post_id, &attr, post, NULL);
 
-  pthread_t led_id;          // Set up the LED blink thread
-  pthread_create(&led_id, &attr, blinkLED, NULL);
-
-  pthread_t count_id;        // Set up the counting thread
-  pthread_create(&count_id, &attr, count, NULL);
-
   // Loop forever or until CTRL-C
   while (keepRunning) {
 
@@ -122,8 +116,6 @@ int main (void)
   fclose(opf);                  // Close the output file
   pthread_attr_destroy(&attr);  // Clean up
   geigerStop();                 // Stop the Geiger circuit
-  HVOff();                      // Make sure HV is off
-  LEDOff();                     // Make sure LED is off
 
   return EXIT_SUCCESS;          // Exit
 }

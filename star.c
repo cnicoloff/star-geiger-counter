@@ -65,13 +65,24 @@ int main (void)
   sigaction(SIGINT, &act, NULL);
 
   // Define the output file
-  FILE *opf;
-  char opfname[] = "out.txt";
-  opf = fopen(opfname, "w");  // Attempt to open our output file
+  FILE *csvf;
+  char csvfname[] = "out.txt";
+  csvf = fopen(opfname, "awb");  // Attempt to open our output file, write+binary, append
 
   // If we failed to open the file, complain and exit
-  if (opf == NULL) {
+  if (csvf == NULL) {
     fprintf(stderr, "Can't open output file!\n");
+    exit(1);
+  }
+
+  // Define the log file
+  FILE *errf;
+  char errfname[] = "error.txt";
+  errf = fopen(errfname, "aw");  // Attempt to open our log file, write, append
+
+  // If we failed to open the file, complain and exit
+  if (errf == NULL) {
+    fprintf(stderr, "Can't open log file!\n");
     exit(1);
   }
 
@@ -116,14 +127,16 @@ int main (void)
     P2 = roundPrecision(calcSecondOrderP(T, P), 2);
     alt = roundPrecision(calcAltitude(P2, T2), 1);
     // Write some output
-    printf("Elapsed: %.3f  uSv/hr: %2.2f, T: %3.1f C (%3.1f F), P: %.0f mbar, h: %.0f m\n", elapsed, uSv, T2, cvtCtoF(T2), P2, alt);
+    fprintf(stdout, "Elapsed: %.3f  uSv/hr: %2.2f, T: %3.1f C (%3.1f F), P: %.0f mbar, h: %.0f m\n", elapsed, uSv, T2, cvtCtoF(T2), P2, alt);
+    fprintf(errf, "Elapsed: %.3f  uSv/hr: %2.2f, T: %3.1f C (%3.1f F), P: %.0f mbar, h: %.0f m\n", elapsed, uSv, T2, cvtCtoF(T2), P2, alt);
 
     waitNextNanoSec(1000000000);  // Sleep until next second
   }
 
-  pthread_attr_destroy(&attr);  // Clean up
-  fclose(opf);                  // Close the output file
   geigerStop();                 // Stop the Geiger circuit
+  pthread_attr_destroy(&attr);  // Clean up
+  fclose(csvf);                 // Close the output file
+  fclose(errf);                 // Close the log file
 
   return EXIT_SUCCESS;          // Exit
 }

@@ -18,6 +18,7 @@
 #include <math.h>
 #include <pthread.h>
 #include <wiringPi.h>
+#include <libcsv/csv.h>
 #include "star_common.h"
 
 static int size = 60;             // Array size

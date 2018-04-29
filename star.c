@@ -106,8 +106,8 @@ int main (void)
   //pthread_create(&post_id, &attr, post, NULL);
 
   //float uSv;
-  double T, P, P1, T1, P2;
-  unsigned long ms;
+  double P1, T1, P2;
+  unsigned long T, P, ms;
   float elapsed, alt;
   int counts;
 
@@ -131,12 +131,12 @@ int main (void)
     T = readTUncompensated();
     P = readPUncompensated();
     T1 = calcFirstOrderT(T);
-    P1 = calcFirstOrderP(T);
+    P1 = calcFirstOrderP(T, P);
     P2 = calcSecondOrderP(T, P);
     alt = calcAltitude(P2, T1);
     // Write some output
-    fprintf(csvf, "%f, %d, %f, %f, %f, %f, %f, %f\n", elapsed, counts, T, T1, P, P1, P2, alt);
-    fprintf(stdout, "%f, %d, %f, %f, %f, %f, %f, %f\n", elapsed, counts, T, T1, P, P1, P2, alt);
+    fprintf(csvf, "%f, %d, %ld, %f, %ld, %f, %f, %f\n", elapsed, counts, T, T1, P, P1, P2, alt);
+    fprintf(stdout, "%f, %d, %ld, %f, %ld, %f, %f, %f\n", elapsed, counts, T, T1, P, P1, P2, alt);
 
     waitNextNanoSec(1000000000);  // Sleep until next second
   }

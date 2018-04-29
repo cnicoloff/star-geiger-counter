@@ -75,7 +75,7 @@ int main (void)
     exit(1);
   }
 
-  // Define the log file
+    // Define the log file
   FILE *errf;
   char errfname[] = "error.txt";
   errf = fopen(errfname, "aw");  // Attempt to open our log file, write, append
@@ -130,7 +130,7 @@ int main (void)
     alt = roundPrecision(calcAltitude(P2, T2), 1);
     // Write some output
     fprintf(stdout, "Elapsed: %.3f  Counts: %d, T: %3.1f C (%3.1f F), P: %.0f mbar, h: %.0f m\n", elapsed, counts, T2, cvtCtoF(T2), P2, alt);
-    fprintf(errf, "Elapsed: %.3f  uSv/hr: %d, T: %3.1f C (%3.1f F), P: %.0f mbar, h: %.0f m\n", elapsed, counts, T2, cvtCtoF(T2), P2, alt);
+    fprintf(errf, "Elapsed: %.3f  Counts: %d, T: %3.1f C (%3.1f F), P: %.0f mbar, h: %.0f m\n", elapsed, counts, T2, cvtCtoF(T2), P2, alt);
 
     waitNextNanoSec(1000000000);  // Sleep until next second
   }

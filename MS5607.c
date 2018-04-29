@@ -321,9 +321,9 @@ double calcSecondOrderP(unsigned long T, unsigned long P) {
  */
 
  double calcAltitude(double pressure, double temp) {
-  float R = 287.057;     // gas constant of air at sea level
-  float g = 9.807;       // acceleration due to gravity, m/s^2
-  float Ts = 288.15;     // temperature at sea level, K
+  float R = 287.1;      // gas constant of air at sea level
+  float g = 9.81;       // acceleration due to gravity, m/s^2
+  float Ts = 288.2;     // temperature at sea level, K
 
   return (R/g) * ((Ts + temp + 273.15) / 2.0) * log(QFF/pressure);
 }

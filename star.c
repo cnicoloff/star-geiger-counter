@@ -66,7 +66,7 @@ int main (void)
 
   // Define the output file
   FILE *csvf;
-  char csvfname[] = "out.txt";
+  char csvfname[] = "counts.txt";
   csvf = fopen(csvfname, "awb");  // Attempt to open our output file, write+binary, append
 
   // If we failed to open the file, complain and exit
@@ -74,6 +74,9 @@ int main (void)
     fprintf(stderr, "Can't open output file!\n");
     exit(1);
   }
+  
+  fprintf(csvf, "Elapsed, Counts, T (Raw), T (1st, C), P (Raw), P (1st, mbar), P (2nd, mbar), Altitude (m, experimental)\n");
+  fprintf(stdout, "Elapsed, Counts, T (Raw), T (1st, C), P (Raw), P (1st, mbar), P (2nd, mbar), Altitude (m, experimental)\n");
 
     // Define the log file
   FILE *errf;
@@ -85,6 +88,8 @@ int main (void)
     fprintf(stderr, "Can't open log file!\n");
     exit(1);
   }
+  
+  // FIXME: Put a timestamp in the error log
 
   // Set up the attribute that allows our threads to run detached
   pthread_attr_t attr;
@@ -100,10 +105,10 @@ int main (void)
   //pthread_t post_id;         // Set up the POST thread
   //pthread_create(&post_id, &attr, post, NULL);
 
-  float uSv;
-  double T, P, T2, P2, alt;
+  //float uSv;
+  double T, P, P1, T1, P2;
   unsigned long ms;
-  float elapsed;
+  float elapsed, alt;
   int counts;
 
   sleep(1);                  // Sleep 1s just so we don't power everything on at once
@@ -122,15 +127,16 @@ int main (void)
     counts = sumCounts(1);
     geigerSetTime((long)elapsed);
     
-    uSv = cpmTouSv(120);
+    //uSv = cpmTouSv(120);
     T = readTUncompensated();
     P = readPUncompensated();
-    T2 = roundPrecision(calcFirstOrderT(T), 2);
-    P2 = roundPrecision(calcSecondOrderP(T, P), 2);
-    alt = roundPrecision(calcAltitude(P2, T2), 1);
+    T1 = calcFirstOrderT(T);
+    P1 = calcFirstOrderP(T);
+    P2 = calcSecondOrderP(T, P);
+    alt = calcAltitude(P2, T1);
     // Write some output
-    fprintf(stdout, "Elapsed: %.3f  Counts: %d, T: %3.1f C (%3.1f F), P: %.0f mbar, h: %.0f m\n", elapsed, counts, T2, cvtCtoF(T2), P2, alt);
-    fprintf(errf, "Elapsed: %.3f  Counts: %d, T: %3.1f C (%3.1f F), P: %.0f mbar, h: %.0f m\n", elapsed, counts, T2, cvtCtoF(T2), P2, alt);
+    fprintf(csvf, "%f, %d, %ld, %f, %ld, %f, %f, %f\n", elapsed, counts, T, T1, P, P1, P2, alt);
+    fprintf(stdout, "%f, %d, %ld, %f, %ld, %f, %f, %f\n", elapsed, counts, T, T1, P, P1, P2, alt);
 
     waitNextNanoSec(1000000000);  // Sleep until next second
   }

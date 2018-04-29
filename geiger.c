@@ -183,6 +183,8 @@ int sumCounts(int numSecs) {
   int numHours = (numSecs / 3600) % size;                           // Seconds to hours
   int numMins = ((numSecs - (numHours * 3600)) / 60) % size;        // Seconds to minutes
   numSecs = (numSecs - (numMins * 60) - (numHours * 3600)) % size;  // Remaining seconds
+  
+  printf("sumCounts: %02d:%02d:%02d\n", numHours, numMins, numSecs);
 
   // Sum hours
   for (int i=0; i < numHours; i++) {

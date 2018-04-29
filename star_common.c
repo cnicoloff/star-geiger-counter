@@ -14,22 +14,20 @@
 
 
 unsigned long getTimeMS(void) {
-  struct timespec tim;
+  clock_gettime(CLOCK_REALTIME, &tim);
 
-    clock_gettime(CLOCK_REALTIME, &tim);
+  /* seconds, converted to ms */
+  unsigned long ms = tim.tv_sec * 1000;
 
-    /* seconds, converted to ms */
-    unsigned long ms = tim.tv_sec * 1000;
+  /* Add full ms */
+  ms += tim.tv_nsec / 1000000;
 
-    /* Add full ms */
-    ms += tim.tv_nsec / 1000000;
-
-    /* round up if necessary */
-    if (tim.tv_nsec % 1000000 >= 500000) {
-        ++ms;
-    }
-    
-    return ms;
+  /* round up if necessary */
+  if (tim.tv_nsec % 1000000 >= 500000) {
+      ++ms;
+  }
+  
+  return ms;
 }
 
 /*
@@ -40,8 +38,7 @@ unsigned long getTimeMS(void) {
  *****************************************************************************
  */
 void waitNextNanoSec(long interval) {
-  struct timespec tim;
-  struct timespec tim2;
+  struct timespec tim, tim2, rem;
 
   // Get the current time
   clock_gettime(CLOCK_MONOTONIC, &tim);
@@ -52,7 +49,13 @@ void waitNextNanoSec(long interval) {
 
   tim2.tv_sec = 0;          // zero seconds
   tim2.tv_nsec = interval;  // some amount of nanoseconds
-  nanosleep(&tim2, NULL);   // wait
+
+  // nanosleep() can be interrupted by the system
+  // If it is interrupted, it returns -1 and places
+  // the remaining time into rem
+  while (nanosleep(&tim2, &rem) < 0) {
+    &tim2 = &rem;           // If any time remaining, wait some more
+  }
 }
 
 /*

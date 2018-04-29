@@ -24,6 +24,7 @@ void HVOff(void);
 void *HVControl (void *vargp);
 
 // Setup routines
+void geigerSetTime(unsigned long seconds);
 int geigerReset(void);
 int geigerSetup(void);
 void geigerStart(void);

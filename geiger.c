@@ -343,6 +343,31 @@ void *HVControl (void *vargp) {
 }
 
 /*
+ * geigerSetTime: Sets the Geiger counting variables
+ *
+ *                seconds is the elapsed seconds since start
+ *****************************************************************************
+ */
+void geigerSetTime(unsigned long seconds) {
+  
+  int numHours = seconds / 3600;                             // Seconds to hours
+  int numMins = (seconds - (numHours * 3600)) / 60;            // Seconds to minutes
+  int numSecs = seconds - (numMins * 60) - (numHours * 3600);  // Remaining seconds
+
+  // Set counting variables
+  hourNum   = numHours % size;
+  minNum    = numMins % size;
+  secNum    = numSecs % size;
+
+  secs[secNum] = 0;
+  mins[minNum] = 0;
+  hours[hourNum] = 0;
+  
+  printf("geigerSetTime: %02d:%02d:%02d\n", hourNum, minNum, secNum);
+}
+
+
+/*
  * geigerReset: Resets the Geiger counting variables.
  *****************************************************************************
  */
@@ -405,8 +430,8 @@ void geigerStart() {
   pthread_t led_id;             // Set up the LED blink thread
   pthread_create(&led_id, &attr, blinkLED, NULL);
 
-  pthread_t count_id;           // Set up the counting thread
-  pthread_create(&count_id, &attr, count, NULL);
+  //pthread_t count_id;           // Set up the counting thread
+  //pthread_create(&count_id, &attr, count, NULL);
 
   geigerReset();                // Reset all counting variables
 

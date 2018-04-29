@@ -92,7 +92,7 @@ int main (void)
   float uSv;
   double T, P, T2, P2, alt;
   unsigned long ms;
-  float ms2;
+  float elapsed;
 
   sleep(1);                  // Sleep 1s just so we don't power everything on at once
   geigerSetup();             // Setup the Geiger circuit
@@ -106,7 +106,9 @@ int main (void)
   // Loop forever or until CTRL-C
   while (keepRunning) {
 
-    ms2 = (getTimeMS() - ms) / 1000.0;
+    elapsed = (getTimeMS() - ms) / 1000.0;
+    geigerSetTime((long)elapsed);
+    
     uSv = cpmTouSv(120);
     T = readTUncompensated();
     P = readPUncompensated();
@@ -114,7 +116,7 @@ int main (void)
     P2 = roundPrecision(calcSecondOrderP(T, P), 2);
     alt = roundPrecision(calcAltitude(P2, T2), 1);
     // Write some output
-    printf("%.3f  uSv/hr: %2.2f, T: %3.2f C (%3.2f F), P: %4.2f mbar, h: %7.2f m\n", ms2, uSv, T2, cvtCtoF(T2), P2, alt);
+    printf("%.3f  uSv/hr: %2.2f, T: %3.2f C (%3.2f F), P: %4.2f mbar, h: %7.2f m\n", elapsed, uSv, T2, cvtCtoF(T2), P2, alt);
 
     waitNextNanoSec(1000000000);  // Sleep until next second
   }

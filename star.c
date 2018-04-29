@@ -135,8 +135,8 @@ int main (void)
     P2 = calcSecondOrderP(T, P);
     alt = calcAltitude(P2, T1);
     // Write some output
-    fprintf(csvf, "%f, %d, %ld, %f, %ld, %f, %f, %f\n", elapsed, counts, T, T1, P, P1, P2, alt);
-    fprintf(stdout, "%f, %d, %ld, %f, %ld, %f, %f, %f\n", elapsed, counts, T, T1, P, P1, P2, alt);
+    fprintf(csvf, "%f, %d, %f, %f, %f, %f, %f, %f\n", elapsed, counts, T, T1, P, P1, P2, alt);
+    fprintf(stdout, "%f, %d, %f, %f, %f, %f, %f, %f\n", elapsed, counts, T, T1, P, P1, P2, alt);
 
     waitNextNanoSec(1000000000);  // Sleep until next second
   }

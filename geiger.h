@@ -7,6 +7,7 @@ void LEDOff (void);
 void *blinkLED (void *vargp);
 
 // Count routines
+void waitOneSec(void);
 int getSecNum(void);
 int getMinNum(void);
 int getHourNum(void);

@@ -50,7 +50,7 @@ static int flashTime = 10;
  *****************************************************************************
  */
 
-void countInterrupt (void) {
+void countInterrupt(void) {
   // Increment the various counters
   sec[secNum]++;
   min[minNum]++;
@@ -242,6 +242,11 @@ float cpmTouSv(int numSecs) {
   return uSv;
 }
 
+void waitOneSec(void) {
+  unsigned int curTime = time(0);
+  printf("Current time: %d", curTime);
+}
+
 /*
  * count: Thread to handle count_related activities.
  *****************************************************************************
@@ -252,6 +257,7 @@ void *count (void *vargp) {
   while (keepRunning) {
     // FIXME: Make this more accurate
     sleep(1);
+    waitOneSec();
 
     // Increment the elapsed time counter
     // FIXME: Not currently in use

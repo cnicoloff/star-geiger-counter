@@ -384,11 +384,13 @@ int altimeterSetup(void) {
     return -1;
   else {
     altimeterReset();              // Reset after power on
+    
+    printf("MS5607 Calibration: ");
 
     // Get altimeter factory calibration coefficients
     for (int i=0; i < 8; i++) {
       C[i] = altimeterCalibration(i);
-      printf("%d: %d ", i, C[i]);
+      printf("%d = %d ", i, C[i]);
     }
     printf("\n");
   }

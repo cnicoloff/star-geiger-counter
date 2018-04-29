@@ -254,7 +254,9 @@ void *count (void *vargp) {
 
     // Increment the elapsed time counter
     // FIXME: Not currently in use
-    elapsed++;
+    //elapsed++;
+
+    waitNextNanoSec(1000000000);
 
     // Increment the seconds counter
     secNum++;
@@ -284,9 +286,7 @@ void *count (void *vargp) {
 
     sec[secNum] = 0;  // Initialize the current second data to zero
     
-    printf("%02d:%02d:%02d\n", hourNum, minNum, secNum);
-
-    waitNextNanoSec(1000000000);
+    printf("count(): %02d:%02d:%02d\n", hourNum, minNum, secNum);
   }
 
   pthread_exit(NULL);
@@ -301,7 +301,7 @@ void HVOn (void) {
   if (!HVisOn) {
     digitalWrite(gatePin, HIGH);  // Turn on the MOSFET gate pin
     HVisOn = true;                // HV is now on
-    printf("HV is on!\n");        // FIXME: Log to file
+    printf("HV = ON\n");        // FIXME: Log to file
   }
 }
 
@@ -314,7 +314,7 @@ void HVOff (void) {
   if (HVisOn) {
     digitalWrite(gatePin, LOW);   // Turn off the MOSFET gate pin
     HVisOn = false;               // HV is now off
-    printf("HV is off.\n");       // FIXME: Log to file
+    printf("HV = OFF\n");       // FIXME: Log to file
   }
 }
 
@@ -351,7 +351,7 @@ int geigerReset(void) {
   // Initialize counting variables
   hourNum   = 0;
   minNum    = 0;
-  secNum    = 0;
+  secNum    = -1;
 
   // Initialize the counting arrays
   for (int i=0; i < size; i++) {

@@ -199,6 +199,7 @@ int sumCounts(int numSecs) {
 
   // Sum seconds
   for (int i=0; i < numSecs; i++) {
+    printf("secNum: %d\n", secNum - i);
     total += sec[getIndex(secNum - i)];
   }
 
@@ -357,7 +358,7 @@ void geigerSetTime(unsigned long seconds) {
   int numMins = ((seconds - (numHours * 3600)) / 60) % size;            // Seconds to minutes
   int numSecs = (seconds - (numMins * 60) - (numHours * 3600)) % size;  // Remaining seconds
 
-  printf("geigerOldTime: %02d:%02d:%02d\n", hourNum, minNum, secNum);
+  //printf("geigerOldTime: %02d:%02d:%02d\n", hourNum, minNum, secNum);
 
   // Set counting variables
   if (numHours != hourNum) {
@@ -373,7 +374,7 @@ void geigerSetTime(unsigned long seconds) {
     sec[secNum] = 0;
   }
   
-  printf("geigerSetTime: %02d:%02d:%02d\n", hourNum, minNum, secNum);
+  //printf("geigerSetTime: %02d:%02d:%02d\n", hourNum, minNum, secNum);
 }
 
 

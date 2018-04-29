@@ -338,7 +338,7 @@ float mbartoInHg(double pressure) {
  *****************************************************************************
  */
 
- double PtoAlt(double pressure, double temp) {
+ double getAltitude(double pressure, double temp) {
   float R = 287.057;     // gas constant of air at sea level
   float g = 9.807;       // acceleration due to gravity, m/s^2
   float Ts = 288.15;     // temperature at sea level, K

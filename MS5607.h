@@ -4,6 +4,7 @@
 int altimeterSetup(void);
 int altimeterInit(void);
 void altimeterReset(void);
+
 unsigned int altimeterCalibration(char coeffNum);
 unsigned long altimeterADC(char cmd);
 unsigned char crc4(unsigned int n_prom[]);
@@ -21,7 +22,7 @@ double firstOrderT(unsigned long T);
 
 float CtoF(double temp);
 float mbartoInHg(double pressure);
-double PtoAlt(double pressure, double temp);
+double getAltitude(double pressure, double temp);
 
 void setQFF(float latitude, float elevation, float height);
 float getQFF();

@@ -86,7 +86,8 @@ int main (void)
   sleep(1);                  // Sleep 1s just so we don't power everything on at once
   altimeterSetup();          // Setup the altimeter
   setQFF(42.29, 45, 2);
-  printf("QFF: %f", getQFF());
+  printf("QFF: %f\n", getQFF());
+
   //pthread_t post_id;         // Set up the POST thread
   //pthread_create(&post_id, &attr, post, NULL);
 
@@ -113,8 +114,8 @@ int main (void)
     }
   }
 
-  fclose(opf);                  // Close the output file
   pthread_attr_destroy(&attr);  // Clean up
+  fclose(opf);                  // Close the output file
   geigerStop();                 // Stop the Geiger circuit
 
   return EXIT_SUCCESS;          // Exit

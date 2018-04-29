@@ -89,12 +89,18 @@ void LEDOff (void) {
 
 void *blinkLED (void *vargp) {
 
-  // Set up nanosleep()
+
+  // Set up nanosleep() for blinking
   struct timespec tim;
   tim.tv_sec = 0;
   tim.tv_nsec = flashTime * 1000000;  // Convert from ns to ms
 
-  LEDisOn = false;
+  // Set up nanosleep() for preventing 100% CPU use
+  struct timespec tim2;
+  tim2.tv_sec = 0;
+  tim2.tv_nsec = 1000000;            // 1 ms
+
+  LEDisOn = false;                   // LED is off by default
 
   while (keepRunning) {
 
@@ -102,15 +108,16 @@ void *blinkLED (void *vargp) {
     if ((LEDTime > 0) && (!LEDisOn)) {
       LEDOn();                    // Turn on the LED
       LEDTime -= flashTime;       // Subtract the time it will be lit
+      nanosleep(&tim, NULL);      // Sleep for flashTime ms
     }
     // If the LED is not supposed to be lit
     else if (LEDisOn) {
-      LEDOff();                   // Turn on the LED
+      LEDOff();                   // Turn off the LED
     }
-
-    // Sleep for flashTime ms, whether we light the LED or not
-    // This is to prevent 100% CPU usage by this thread
-    nanosleep(&tim, NULL);
+    // Prevent this thread from using 100% CPU
+    else {
+      nanosleep(&tim2, NULL);
+    }
   }
 
   // Turn off the LED before exiting the thread

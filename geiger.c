@@ -344,7 +344,26 @@ void *HVControl (void *vargp) {
 }
 
 /*
- * geigerSetup: Initializes the Geiger circuit.
+ * geigerReset: Resets the Geiger counting variables.
+ *****************************************************************************
+ */
+int geigerReset(void) {
+
+  // Initialize counting variables
+  hourNum   = 0;
+  minNum    = 0;
+  secNum    = 0;
+
+  // Initialize the counting arrays
+  for (int i=0; i < size; i++) {
+    sec[i] = min[i] = hour[i] = 0;
+  }
+
+  return 0;
+}
+
+/*
+ * geigerSetup: Sets up the Geiger circuit.
  *****************************************************************************
  */
 int geigerSetup(void) {
@@ -366,16 +385,8 @@ int geigerSetup(void) {
   wiringPiISR(geigerPin, INT_EDGE_FALLING, &countInterrupt);
   pullUpDnControl(geigerPin, PUD_OFF);  // Pull up/down resistors off
 
-  // Initialize counting variables
-  hourNum   = 0;
-  minNum    = 0;
-  secNum    = 0;
-
-  // Initialize the counting arrays
-  for (int i=0; i < size; i++) {
-    sec[i] = min[i] = hour[i] = 0;
-  }
-
+  geigerReset();             // Reset all counting variables
+  
   return 0;
 }
 
@@ -397,6 +408,8 @@ void geigerStart() {
 
   pthread_t count_id;           // Set up the counting thread
   pthread_create(&count_id, &attr, count, NULL);
+
+  geigerReset();                // Reset all counting variables
 
   pthread_attr_destroy(&attr);  // Clean up
 }

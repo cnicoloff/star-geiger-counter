@@ -96,10 +96,12 @@ int main (void)
   sleep(1);                  // Sleep 1s just so we don't power everything on at once
   geigerSetup();             // Setup the Geiger circuit
   geigerStart();             // Start the Geiger circuit
-  HVOn();  // FIXME: Base this on altitude
+  HVOn();                    // FIXME: Base this on altitude
   
   waitNextNanoSec(1000000000);  // Start with the next whole second
-  ms = getTimeMS();
+  ms = getTimeMS();             // Save the start time
+
+  geigerReset();             // Reset the Geiger counting variables
 
   // Loop forever or until CTRL-C
   while (keepRunning) {

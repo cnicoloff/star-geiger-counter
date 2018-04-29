@@ -24,6 +24,7 @@ void HVOff(void);
 void *HVControl (void *vargp);
 
 // Setup routines
+int geigerReset(void);
 int geigerSetup(void);
 void geigerStart(void);
 void geigerStop(void);

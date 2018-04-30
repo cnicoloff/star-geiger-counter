@@ -18,17 +18,16 @@
 #include <math.h>
 #include <pthread.h>
 #include <wiringPi.h>
-#include <csv.h>
 #include "star_common.h"
 
 static int size = 60;             // Array size
 static volatile int secNum;       // Which index in the seconds array
 static volatile int sec[60]={0};  // Array of collected counts per second
-static volatile int minNum;       // Which index of the minutes array
-static volatile int min[60]={0};  // Array of collected counts per minute
-static volatile int hourNum;      // Which index of the hours array
-static volatile int hour[60]={0}; // Array of collected counts per hour
-static volatile int elapsed;      // How many seconds have elapsed
+//static volatile int minNum;       // Which index of the minutes array
+//static volatile int min[60]={0};  // Array of collected counts per minute
+//static volatile int hourNum;      // Which index of the hours array
+//static volatile int hour[60]={0}; // Array of collected counts per hour
+//static volatile int elapsed;      // How many seconds have elapsed
 
 static volatile int LEDTime;      // How much time is left to light LED
 static volatile bool LEDisOn;     // Is LED on?
@@ -53,10 +52,10 @@ static int flashTime = 10;
  */
 
 void countInterrupt(void) {
-  // Increment the various counters
+  // Increment the counter
   sec[secNum]++;
-  min[minNum]++;
-  hour[hourNum]++;
+//  min[minNum]++;
+//  hour[hourNum]++;
 
   // Tell the LED thread to light up
   LEDTime += flashTime;
@@ -255,10 +254,6 @@ void *count (void *vargp) {
   
   while (keepRunning) {
 
-    // Increment the elapsed time counter
-    // FIXME: Not currently in use
-    //elapsed++;
-
     waitNextNanoSec(1000000000);
 
     // Increment the seconds counter
@@ -266,30 +261,10 @@ void *count (void *vargp) {
 
     // Roll the seconds buffer
     if (secNum % size == 0) {
-
-      minNum++;  // Increment the minutes counter
-
-      // Roll the minutes buffer
-      if (minNum % size == 0) {
-
-        hourNum++;  // Increment the hours counter
-
-        // Roll the hours buffer
-        if (hourNum % size == 0) {
-          hourNum = 0;
-        }
-
-        minNum = 0;
-        hour[hourNum] = 0;  // Initialize the current hour data to zero
-      }
-
       secNum = 0;
-      min[minNum] = 0;  // Initialize the current minute data to zero
     }
 
     sec[secNum] = 0;  // Initialize the current second data to zero
-    
-    printf("count(): %02d:%02d:%02d\n", hourNum, minNum, secNum);
   }
 
   pthread_exit(NULL);

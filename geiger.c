@@ -335,14 +335,14 @@ void geigerSetTime(unsigned long seconds) {
   //printf("geigerOldTime: %02d:%02d:%02d\n", hourNum, minNum, secNum);
 
   // Set counting variables
-  if (numHours != hourNum) {
-    hourNum = numHours;
-    hour[hourNum] = 0;
-  }
-  if (numMins != minNum) {
-    minNum = numMins;
-    min[minNum] = 0;
-  }
+  //if (numHours != hourNum) {
+  //  hourNum = numHours;
+  //  hour[hourNum] = 0;
+  //}
+  //if (numMins != minNum) {
+  //  minNum = numMins;
+  //  min[minNum] = 0;
+  //}
   if (numSecs != secNum) {
     secNum = numSecs;
     sec[secNum] = 0;

@@ -42,7 +42,7 @@ unsigned long getTimeMS(void) {
  *****************************************************************************
  */
 
-char[] getTimeStamp(void) {
+const char * getTimeStamp(void) {
   char ts[12] = {0};
   unsigned long ms = getTimeMS();
   

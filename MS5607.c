@@ -197,7 +197,7 @@ unsigned long readPUncompensated(void) {
  */
  
 unsigned long readTUncompensated(void) {
-  return altimeterADC(CMD_ADC_D2 + CMD_ADC_256);
+  return altimeterADC(CMD_ADC_D2 + CMD_ADC_1024);
 }
 
 /*

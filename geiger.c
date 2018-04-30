@@ -190,14 +190,14 @@ int sumCounts(int numSecs) {
   numSecs = (numSecs - (numMins * 60) - (numHours * 3600)) % size;  // Remaining seconds
   
   // Sum hours
-  for (int i=0; i < numHours; i++) {
-    total += hour[getIndex(hourNum - i)];
-  }
+  //for (int i=0; i < numHours; i++) {
+  //  total += hour[getIndex(hourNum - i)];
+  //}
 
   // Sum minutes
-  for (int i=0; i < numMins; i++) {
-    total += min[getIndex(minNum - i)];
-  }
+  //for (int i=0; i < numMins; i++) {
+  //  total += min[getIndex(minNum - i)];
+  //}
 
   // Sum seconds
   for (int i=0; i < numSecs; i++) {
@@ -363,12 +363,13 @@ int geigerReset(void) {
 
   // Initialize counting variables
   hourNum   = 0;
-  minNum    = 0;
-  secNum    = 0;
+  //minNum    = 0;
+  //secNum    = 0;
 
   // Initialize the counting arrays
   for (int i=0; i < size; i++) {
-    sec[i] = min[i] = hour[i] = 0;
+    sec[i] = 0;
+    //min[i] = hour[i] = 0;
   }
 
   return 0;

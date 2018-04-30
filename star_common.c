@@ -20,8 +20,8 @@
 
 unsigned long getTimeMS(void) {
   struct timespec tim;
-  
-  clock_gettime(CLOCK_REALTIME, &tim);
+
+  clock_gettime(CLOCK_MONOTONIC, &tim);
 
   /* seconds, converted to ms */
   unsigned long ms = tim.tv_sec * 1000;
@@ -33,7 +33,7 @@ unsigned long getTimeMS(void) {
   if (tim.tv_nsec % 1000000 >= 500000) {
       ++ms;
   }
-  
+
   return ms;
 }
 
@@ -45,14 +45,14 @@ unsigned long getTimeMS(void) {
 const char * getTimeStamp(void) {
   static char ts[12] = {0};
   unsigned long ms = getTimeMS();
-  
+
   int h = ms / 3600000;
-  ms -= h * 36000000;
+  ms -= h * 3600000;
   int m = ms / 60000;
   ms -= m * 60000;
   int s = ms / 1000;
   ms -= s * 1000;
-  
+
   sprintf(ts, "[%02d:%02d:%02d.%03d]", h, m, s, ms);
   return ts;
 }

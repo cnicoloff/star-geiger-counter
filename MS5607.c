@@ -72,7 +72,7 @@ int altimeterReset(void) {
  *                         acquired in two parts.
  *****************************************************************************
  */
- 
+
 unsigned int altimeterCalibration(char coeffNum) {
   unsigned char buffer[5] = {0};
   unsigned int rC = 0;
@@ -99,7 +99,7 @@ unsigned int altimeterCalibration(char coeffNum) {
  *                 in three parts.
  *****************************************************************************
  */
- 
+
 unsigned long altimeterADC(char cmd) {
 
   unsigned char buffer[5] = {0};            // Set up a buffer

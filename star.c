@@ -30,6 +30,8 @@ static volatile bool keepRunning;
 
 void breakHandler(int s) {
 
+  printf("%s CTRL-C, exiting.\n", getTimeStamp());
+
   // Tell all loops and threads to exit
   keepRunning = false;
 }
@@ -95,6 +97,7 @@ int main (void)
 
   keepRunning = true;        // Run forever unless halted
   altimeterSetup();          // Setup the altimeter
+  printf("%s altimeterSetup()\n", getTimeStamp());
 
   setQFF(42.29, 46, 1);
   printf("%s Calculated QFF = %f\n", getTimeStamp(), getQFF());
@@ -109,11 +112,17 @@ int main (void)
   int counts;
 
   sleep(1);                  // Sleep 1s just so we don't power everything on at once
+
   geigerSetup();             // Setup the Geiger circuit
+  printf("%s geigerSetup()\n", getTimeStamp());
   geigerStart();             // Start the Geiger circuit
+  printf("%s geigerStart()\n", getTimeStamp());
+
   HVOn();                    // FIXME: Base this on altitude
+  printf("%s HVOn()\n", getTimeStamp());
 
   geigerReset();             // Reset the Geiger counting variables
+  printf("%s geigerReset()\n", getTimeStamp());
 
   ms = getTimeMS();          // Save the start time
 
@@ -161,9 +170,15 @@ int main (void)
   }
 
   geigerStop();                 // Stop the Geiger circuit
+  printf("%s geigerStop()\n", getTimeStamp());
+
   pthread_attr_destroy(&attr);  // Clean up
+
   fclose(csvf);                 // Close the output file
+  printf("%s Closed output file.\n", getTimeStamp());
+
   fclose(errf);                 // Close the log file
+  printf("%s Closed log file.\n", getTimeStamp());
 
   return EXIT_SUCCESS;          // Exit
 }

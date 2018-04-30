@@ -118,7 +118,7 @@ int main (void)
   geigerReset();             // Reset the Geiger counting variables
 
   fprintf(csvf, "Elapsed, Counts, T (Raw), T (1st, C), P (Raw), P (1st, mbar), P (2nd, mbar), Altitude (m, experimental)\n");
-  fprintf(stdout, "Elapsed  |Counts |T (Raw)  |T (1st)  |P (Raw)  |P (1st)  |P (2nd)  |Altitude\n");
+  fprintf(stdout, "Elapsed  |Counts |T (Raw) |T (1st) |P (Raw)  |P (1st)  |P (2nd)  |Altitude\n");
 
   // Loop forever or until CTRL-C
   while (keepRunning) {
@@ -136,7 +136,7 @@ int main (void)
     alt = calcAltitude(P2, T1);
     // Write some output
     fprintf(csvf, "%f, %d, %ld, %f, %ld, %f, %f, %f\n", elapsed, counts, T, T1, P, P1, P2, alt);
-    fprintf(stdout, "%-9.3f %-5d %-8ld %-7.3f %-8ld %-7.3f %-7.3f %-8.2f\n", elapsed, counts, T, T1, P, P1, P2, alt);
+    fprintf(stdout, "%-9.3f %-5d %-9ld %-7.3f %-9ld %-7.3f %-7.3f %-8.2f\n", elapsed, counts, T, T1, P, P1, P2, alt);
 
     waitNextNanoSec(1000000000);  // Sleep until next second
   }

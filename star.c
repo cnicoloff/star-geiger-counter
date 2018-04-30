@@ -151,6 +151,12 @@ int main (void)
       fprintf(stdout, "  Elapsed |    N |       T |     T1 |       P |       P1 |       P2 |        H\n");
       fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
     }
+    // FIXME: This is a silly attempt to make the loop timing more predictable
+    else {
+      fprintf(stdout, "");
+      fprintf(stdout, "");
+      fprintf(stdout, "");
+    }
 
     // Read the altimeter
     T = readTUncompensated();

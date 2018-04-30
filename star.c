@@ -69,6 +69,7 @@ int main (void)
   // Define the output file
   FILE *csvf;
   char csvfname[] = "counts.txt";
+  // FIXME: Does this need to be binary?
   csvf = fopen(csvfname, "awb");  // Attempt to open our output file, write+binary, append
 
   // If we failed to open the file, complain and exit
@@ -76,6 +77,8 @@ int main (void)
     fprintf(stderr, "Can't open output file!\n");
     exit(1);
   }
+  
+  setbuf(csvf, NULL);  // Do not buffer, write directly to disk!
 
   // Define the log file
   FILE *errf;
@@ -87,6 +90,8 @@ int main (void)
     fprintf(stderr, "Can't open log file!\n");
     exit(1);
   }
+
+  setbuf(errf, NULL);  // Do not buffer, write directly to disk!
 
   // FIXME: Put a timestamp in the error log
 

@@ -74,7 +74,7 @@ int main (void)
     fprintf(stderr, "Can't open output file!\n");
     exit(1);
   }
-  
+
   // Define the log file
   FILE *errf;
   char errfname[] = "error.txt";
@@ -85,7 +85,7 @@ int main (void)
     fprintf(stderr, "Can't open log file!\n");
     exit(1);
   }
-  
+
   // FIXME: Put a timestamp in the error log
 
   // Set up the attribute that allows our threads to run detached
@@ -95,7 +95,7 @@ int main (void)
 
   keepRunning = true;        // Run forever unless halted
   altimeterSetup();          // Setup the altimeter
-  
+
   setQFF(42.29, 46, 1);
   printf("Calculated QFF = %f\n", getQFF());
 
@@ -112,31 +112,50 @@ int main (void)
   geigerSetup();             // Setup the Geiger circuit
   geigerStart();             // Start the Geiger circuit
   HVOn();                    // FIXME: Base this on altitude
-  
-  ms = getTimeMS();          // Save the start time
 
   geigerReset();             // Reset the Geiger counting variables
 
+  ms = getTimeMS();          // Save the start time
+
   fprintf(csvf, "Elapsed, Counts, T (Raw), T (1st, C), P (Raw), P (1st, mbar), P (2nd, mbar), Altitude (m, experimental)\n");
-  fprintf(stdout, "Elapsed  |Counts |T (Raw) |T (1st) |P (Raw)  |P (1st)  |P (2nd)  |Altitude\n");
+  fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
+  fprintf(stdout, "  Elapsed |    N |       T |     T1 |       P |       P1 |       P2 |        H\n");
+  fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
+
+  waitNextNanoSec(1000000000);  // Sleep until next second
 
   // Loop forever or until CTRL-C
   while (keepRunning) {
 
+    // Elapsed time since start
     elapsed = (getTimeMS() - ms) / 1000.0;
+
+    // Get the counts from the last second
     counts = sumCounts(1);
+
+    // Advance the count timer
     geigerSetTime((long)elapsed);
-    
-    //uSv = cpmTouSv(120);
+
+    // Every so often, print the header to screen
+    if (((long)elapsed % 20 == 0) && ((long)elapsed != 0)) {
+      fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
+      fprintf(stdout, "  Elapsed |    N |       T |     T1 |       P |       P1 |       P2 |        H\n");
+      fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
+    }
+
+    // Read the altimeter
     T = readTUncompensated();
     P = readPUncompensated();
+
+    // Do some calculations
     T1 = calcFirstOrderT(T);
     P1 = calcFirstOrderP(T, P);
     P2 = calcSecondOrderP(T, P);
     alt = calcAltitude(P2, T1);
+
     // Write some output
     fprintf(csvf, "%f, %d, %ld, %f, %ld, %f, %f, %f\n", elapsed, counts, T, T1, P, P1, P2, alt);
-    fprintf(stdout, "%9.3f %6d %-9ld %-7.3f %-9ld %-7.3f %-7.3f %-8.2f\n", elapsed, counts, T, T1, P, P1, P2, alt);
+    fprintf(stdout, "%9.3f | %4d | %7ld | %6.2f | %7ld | %7.3f | %7.3f | %8.2f\n", elapsed, counts, T, T1, P, P1, P2, alt);
 
     waitNextNanoSec(1000000000);  // Sleep until next second
   }

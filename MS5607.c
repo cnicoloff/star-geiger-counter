@@ -186,7 +186,7 @@ unsigned char altimeterCRC4(unsigned int n_prom[]) {
  * readPUncompensated: Read the raw pressure data from the altimeter
  *****************************************************************************
  */
- 
+
 unsigned long readPUncompensated(void) {
   return altimeterADC(CMD_ADC_D1 + CMD_ADC_4096);
 }
@@ -195,9 +195,9 @@ unsigned long readPUncompensated(void) {
  * readTUncompensated: Read the raw temperature data from the altimeter
  *****************************************************************************
  */
- 
+
 unsigned long readTUncompensated(void) {
-  return altimeterADC(CMD_ADC_D2 + CMD_ADC_1024);
+  return altimeterADC(CMD_ADC_D2 + CMD_ADC_4096);
 }
 
 /*
@@ -205,7 +205,7 @@ unsigned long readTUncompensated(void) {
  *         temperature
  *****************************************************************************
  */
- 
+
 double calcDT(unsigned long T) {
   return (T - C[5] * pow(2,8));
 }

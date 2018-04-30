@@ -136,7 +136,7 @@ int main (void)
     alt = calcAltitude(P2, T1);
     // Write some output
     fprintf(csvf, "%f, %d, %ld, %f, %ld, %f, %f, %f\n", elapsed, counts, T, T1, P, P1, P2, alt);
-    fprintf(stdout, "%6.3f %d %ld %4.3f %ld %4.3f %4.3f %6.2f\n", elapsed, counts, T, T1, P, P1, P2, alt);
+    fprintf(stdout, "%-6.3f %-5d %-8ld %-4.3f %-8ld %-4.3f %-4.3f %-6.2f\n", elapsed, counts, T, T1, P, P1, P2, alt);
 
     waitNextNanoSec(1000000000);  // Sleep until next second
   }

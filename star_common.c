@@ -43,7 +43,7 @@ unsigned long getTimeMS(void) {
  */
 
 const char * getTimeStamp(void) {
-  char ts[12] = {0};
+  const char ts[12] = {0};
   unsigned long ms = getTimeMS();
   
   int h = ms / 3600000;

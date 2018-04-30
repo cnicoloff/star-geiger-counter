@@ -362,9 +362,9 @@ void geigerSetTime(unsigned long seconds) {
 int geigerReset(void) {
 
   // Initialize counting variables
-  hourNum   = 0;
+  //hourNum   = 0;
   //minNum    = 0;
-  //secNum    = 0;
+  secNum    = 0;
 
   // Initialize the counting arrays
   for (int i=0; i < size; i++) {

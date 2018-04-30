@@ -97,7 +97,7 @@ int main (void)
   altimeterSetup();          // Setup the altimeter
 
   setQFF(42.29, 46, 1);
-  printf("Calculated QFF = %f\n", getQFF());
+  printf("%s Calculated QFF = %f\n", getTimeStamp(), getQFF());
 
   //pthread_t post_id;         // Set up the POST thread
   //pthread_create(&post_id, &attr, post, NULL);

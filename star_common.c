@@ -13,6 +13,11 @@
 #include <inttypes.h>
 
 
+/*
+ * getTimeMS: Gets the current time in milliseconds
+ *****************************************************************************
+ */
+
 unsigned long getTimeMS(void) {
   struct timespec tim;
   
@@ -33,12 +38,33 @@ unsigned long getTimeMS(void) {
 }
 
 /*
+ * getTimeStamp: Gets the current timestamp [HH:MM:SS.ms]
+ *****************************************************************************
+ */
+
+char[] getTimeStamp(void) {
+  char ts[12] = {0};
+  unsigned long ms = getTimeMS();
+  
+  int h = ms / 3600000;
+  ms -= h * 36000000;
+  int m = ms / 60000;
+  ms -= m * 60000;
+  int s = ms / 1000;
+  ms -= s * 1000;
+  
+  sprintf(ts, "[%02d:%02d:%02d.%03d]", h, m, s, ms);
+  return ts;
+}
+
+/*
  * waitNextNanoSec: Attempts to wait until the next whole interval, accurate to
  *                  maybe 10-20ms.  The maximum interval is 1s.
  *
  *                  interval is specified in nanoseconds
  *****************************************************************************
  */
+
 void waitNextNanoSec(long interval) {
   struct timespec tim, tim2, rem;
 

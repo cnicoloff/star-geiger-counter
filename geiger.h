@@ -9,8 +9,8 @@ void *blinkLED (void *vargp);
 // Count routines
 void waitOneSec(void);
 int getSecNum(void);
-int getMinNum(void);
-int getHourNum(void);
+//int getMinNum(void);
+//int getHourNum(void);
 int getIndex(int numIndex);
 int sumCounts(int numSecs);
 float averageCounts(int numSecs);

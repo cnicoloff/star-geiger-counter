@@ -23,11 +23,14 @@
 static int size = 60;             // Array size
 static volatile int secNum;       // Which index in the seconds array
 static volatile int sec[60]={0};  // Array of collected counts per second
-//static volatile int minNum;       // Which index of the minutes array
-//static volatile int min[60]={0};  // Array of collected counts per minute
-//static volatile int hourNum;      // Which index of the hours array
-//static volatile int hour[60]={0}; // Array of collected counts per hour
-//static volatile int elapsed;      // How many seconds have elapsed
+
+/* 
+static volatile int minNum;       // Which index of the minutes array
+static volatile int min[60]={0};  // Array of collected counts per minute
+static volatile int hourNum;      // Which index of the hours array
+static volatile int hour[60]={0}; // Array of collected counts per hour
+static volatile int elapsed;      // How many seconds have elapsed
+*/
 
 static volatile int LEDTime;      // How much time is left to light LED
 static volatile bool LEDisOn;     // Is LED on?
@@ -138,20 +141,20 @@ int getSecNum(void) {
 /*
  * getMinNum: 
  *****************************************************************************
- */
 
 int getMinNum(void) {
   return minNum;
 }
+ */
 
 /*
  * getHourNum: 
  *****************************************************************************
- */
 
 int getHourNum(void) {
   return hourNum;
 }
+ */
 
 /*
  * getIndex: Get a particular index from the circular buffer.

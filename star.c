@@ -33,7 +33,19 @@
 #include "geiger.h"
 #include "MS5607.h"
 
-static volatile bool keepRunning;
+struct data_second {
+   float elapsed;
+   int counts;
+   unsigned long T;
+   double T1;
+   unsigned long P;
+   double P1;
+   double P2;
+   float altitude;
+};
+
+static volatile bool keepRunning;     // main() infinite loop
+static volatile data_second data[5];  // Past 5 seconds of data
 
 /*
  * breakHandler: Captures CTRL-C so we can shut down cleanly.
@@ -122,11 +134,10 @@ int main (void)
   //pthread_t post_id;         // Set up the POST thread
   //pthread_create(&post_id, &attr, post, NULL);
 
-  //float uSv;
-  double P1, T1, P2;
-  unsigned long T, P, ms;
-  float elapsed, alt;
+  unsigned long ms;
+  float elapsed;
   int counts;
+  int curSec;
 
   sleep(1);                  // Sleep 1s just so we don't power everything on at once
 
@@ -157,32 +168,42 @@ int main (void)
 
     // Elapsed time since start
     elapsed = (getTimeMS() - ms) / 1000.0;
+    
+    // Whole number of current second
+    curSec = (long)elapsed % 5;
 
     // Get the counts from the last second
     counts = sumCounts(1);
 
     // Advance the count timer
-    geigerSetTime((long)elapsed);
+    geigerSetTime(curSec);
 
     // Every so often, print the header to screen
-    if (((long)elapsed % 20 == 0) && ((long)elapsed != 0)) {
+    if ((curSec % 20 == 0) && (curSec != 0)) {
       fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
       fprintf(stdout, "  Elapsed |    N |       T |     T1 |       P |       P1 |       P2 |        H\n");
       fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
     }
 
-    // Read the altimeter
-    T = readTUncompensated();
-    P = readPUncompensated();
+    data[curSec].elapsed = elapsed;
+    data[curSec].counts = counts;
+    data[curSec].T = readTUncompensated();
+    data[curSec].P = readPUncompensated();
 
     // Do some calculations
-    T1 = calcFirstOrderT(T);
-    P1 = calcFirstOrderP(T, P);
-    P2 = calcSecondOrderP(T, P);
-    alt = calcAltitude(P2, T1);
+    data[curSec].T1 = calcFirstOrderT(data[curSec].T);
+    data[curSec].P1 = calcFirstOrderP(data[curSec].T, data[curSec].P);
+    data[curSec].P2 = calcSecondOrderP(data[curSec].T, data[curSec].P);
+    data[curSec].altitude = calcAltitude(data[curSec].P2, data[curSec].T1);
+    
+    // Every 5 seconds, write to file
+    if (curSec == 4) {
+      for (int i = (curSec - 5); i <= curSec; i++) {
+        fprintf(csvf, "%f, %d, %ld, %f, %ld, %f, %f, %f\n", data[i].elapsed, data[i].counts, data[i].T, data[i].T1, data[i].P, data[i].P1, data[i].P2, data[i].altitude);
+      }
+    }
 
     // Write some output
-    fprintf(csvf, "%f, %d, %ld, %f, %ld, %f, %f, %f\n", elapsed, counts, T, T1, P, P1, P2, alt);
     fprintf(stdout, "%9.3f | %4d | %7ld | %6.2f | %7ld | %7.3f | %7.3f | %8.2f\n", elapsed, counts, T, T1, P, P1, P2, alt);
 
     waitNextNanoSec(1000000000);  // Sleep until next second

@@ -143,7 +143,7 @@ int main (void)
 
   ms = getTimeMS();          // Save the start time
 
-  fprintf(csvf, "Elapsed, Counts, T (Raw), T (1st, C), P (Raw), P (1st, mbar), P (2nd, mbar), Altitude (m, experimental)\n");
+  fprintf(csvf, "Elapsed, Counts, T (Raw), T1 (C), P (Raw), P1 (mbar), P2 (mbar), Altitude (m)\n");
   fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
   fprintf(stdout, "  Elapsed |    N |       T |     T1 |       P |       P1 |       P2 |        H\n");
   fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
@@ -170,7 +170,6 @@ int main (void)
     }
     // FIXME: This is a silly attempt to make the loop timing more predictable
     else {
-      fprintf(stdout, "");
       fprintf(stdout, "");
       fprintf(stdout, "");
     }

@@ -1,18 +1,36 @@
 /*
  *****************************************************************************
- * Code adapted from:
- * https://www.parallax.com/sites/default/files/downloads/29124-APPNote_520_C_code.pdf
- * Copyright (c) 2009 MEAS Switzerland
+ * MS5607.c:  interfaces a Raspberry Pi with the MS5607 altimeter module from
+ *            Parallax.  https://www.parallax.com/product/29124
+ *
+ * Code derived from sample code at:
+ * www.parallax.com/sites/default/files/downloads/29124-APPNote_520_C_code.pdf
+ * Copyright 2009 MEAS Switzerland
  *
  * Adapted for Raspberry Pi and spidev libraries.
- * Copyright (c) 2018 by Catherine Nicoloff, GNU GPL-3.0-or-later
+ * Copyright 2018 by Catherine Nicoloff, GNU GPL-3.0-or-later
+ *****************************************************************************
+ * This file is part of STAR.
+ *
+ * STAR is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * STAR is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with STAR.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <linux/spi/spidev.h>
+//#include <linux/spi/spidev.h>
 #include "PiSPI.h"
 
 // Definitions to support MS5607 altimeter
@@ -53,7 +71,7 @@ int altimeterInit(void) {
 int altimeterReset(void) {
   unsigned char buffer[1] = {0};
 
-  SPISetDelay(3000);                      // Set a 0.5ms read/write delay
+  SPISetDelay(3000);                     // Set a 3ms read/write delay
   buffer[0] = CMD_RESET;                 // Put the reset command in the buffer
   return SPIDataRW(CHANNEL, buffer, 1);  // Send the command
 }
@@ -95,7 +113,7 @@ unsigned int altimeterCalibration(char coeffNum) {
 /*
  * altimeterADC(): Query the altimeter's analog to digital converter
  *
- *                 These values are 32 bit, which is why they are acquired
+ *                 These values are 24 bit, which is why they are acquired
  *                 in three parts.
  *****************************************************************************
  */
@@ -317,15 +335,20 @@ double calcSecondOrderP(unsigned long T, unsigned long P) {
 
 /*
  * calcAltitude: Convert pressure and temperature to altitude
+ *
+ * Formula from: https://www.researchgate.net/file.PostFileLoader.html?id=5409cac4d5a3f2e81f8b4568&assetKey=AS%3A273593643012096%401442241215893
  *****************************************************************************
  */
 
  double calcAltitude(double pressure, double temp) {
-  float R = 287.1;      // gas constant of air at sea level
-  float g = 9.81;       // acceleration due to gravity, m/s^2
-  float Ts = 288.2;     // temperature at sea level, K
+  float R = 287.053;    // gas constant of air at sea level
+  float g = 9.80665;    // acceleration due to gravity, m/s^2
+  float Ts = 288.15;    // temperature at sea level, K
+  float L = -0.0065;    // lapse rate of the atmosphere
+  
 
-  return (R/g) * ((Ts + temp + 273.15) / 2.0) * log(QFF/pressure);
+  return Ts/L * (pow((P/QFF),-L*R/g)-1);
+  //return (R/g) * ((Ts + temp + 273.15) / 2.0) * log(QFF/pressure);
 }
 
 /*
@@ -339,9 +362,9 @@ double calcSecondOrderP(unsigned long T, unsigned long P) {
  */
 
 void setQFF(float latitude, float elevation, float height) {
-  float R = 287.1;       // gas constant of air at sea level
-  float g = 9.81;        // acceleration due to gravity, m/s^2
-  float t = 288.2;       // standard temperature at sea level
+  float R = 287.053;     // gas constant of air at sea level
+  float g = 9.80665;     // acceleration due to gravity, m/s^2
+  float t = 288.15;      // standard temperature at sea level
   double T1 = 0.0;
 
   double T = readTUncompensated();       // Read the raw temperature value

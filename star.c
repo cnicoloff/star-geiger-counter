@@ -45,7 +45,8 @@ struct data_second {
 };
 
 static volatile bool keepRunning;     // main() infinite loop
-static volatile struct data_second data[5];  // Past 5 seconds of data
+static int buffer_seconds = 5;        // How many seconds of data to log to file at once
+static volatile struct data_second data[buffer_seconds];  // Data to log to file
 
 /*
  * breakHandler: Captures CTRL-C so we can shut down cleanly.
@@ -197,8 +198,8 @@ int main (void)
     data[curSec].altitude = calcAltitude(data[curSec].P2, data[curSec].T1);
 
     // Every 5 seconds, write to file
-    if (curSec == 4) {
-      for (int i = (curSec - 4); i <= curSec; i++) {
+    if (curSec == (buffer_seconds - 1)) {
+      for (int i = 0); i < buffer_seconds; i++) {
         fprintf(csvf, "%f, %d, %ld, %f, %ld, %f, %f, %f\n", data[i].elapsed, data[i].counts, data[i].T, data[i].T1, data[i].P, data[i].P1, data[i].P2, data[i].altitude);
       }
     }

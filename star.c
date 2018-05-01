@@ -45,7 +45,7 @@ struct data_second {
 };
 
 static volatile bool keepRunning;     // main() infinite loop
-static volatile data_second data[5];  // Past 5 seconds of data
+static volatile struct data_second data[5];  // Past 5 seconds of data
 
 /*
  * breakHandler: Captures CTRL-C so we can shut down cleanly.
@@ -168,7 +168,7 @@ int main (void)
 
     // Elapsed time since start
     elapsed = (getTimeMS() - ms) / 1000.0;
-    
+
     // Whole number of current second
     curSec = (long)elapsed % 5;
 
@@ -195,16 +195,16 @@ int main (void)
     data[curSec].P1 = calcFirstOrderP(data[curSec].T, data[curSec].P);
     data[curSec].P2 = calcSecondOrderP(data[curSec].T, data[curSec].P);
     data[curSec].altitude = calcAltitude(data[curSec].P2, data[curSec].T1);
-    
+
     // Every 5 seconds, write to file
     if (curSec == 4) {
-      for (int i = (curSec - 5); i <= curSec; i++) {
+      for (int i = (curSec - 4); i <= curSec; i++) {
         fprintf(csvf, "%f, %d, %ld, %f, %ld, %f, %f, %f\n", data[i].elapsed, data[i].counts, data[i].T, data[i].T1, data[i].P, data[i].P1, data[i].P2, data[i].altitude);
       }
     }
 
     // Write some output
-    fprintf(stdout, "%9.3f | %4d | %7ld | %6.2f | %7ld | %7.3f | %7.3f | %8.2f\n", elapsed, counts, T, T1, P, P1, P2, alt);
+    fprintf(stdout, "%9.3f | %4d | %7ld | %6.2f | %7ld | %7.3f | %7.3f | %8.2f\n", data[curSec].elapsed, data[curSec].counts, data[curSec].T, data[curSec].T1, data[curSec].P, data[curSec].P1, data[curSec].P2, data[curSec].altitude);
 
     waitNextNanoSec(1000000000);  // Sleep until next second
   }

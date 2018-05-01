@@ -90,7 +90,7 @@ int main (void)
     exit(1);
   }
   
-  setbuf(csvf, NULL);  // Do not buffer, write directly to disk!
+  setbuf(csvf, NULL);             // Do not buffer, write directly to disk!
 
   // Define the log file
   FILE *errf;
@@ -103,7 +103,7 @@ int main (void)
     exit(1);
   }
 
-  setbuf(errf, NULL);  // Do not buffer, write directly to disk!
+  setbuf(errf, NULL);            // Do not buffer, write directly to disk!
 
   // FIXME: Put a timestamp in the error log
 
@@ -114,10 +114,10 @@ int main (void)
 
   keepRunning = true;        // Run forever unless halted
   altimeterSetup();          // Setup the altimeter
-  printf("%s altimeterSetup()\n", getTimeStamp());
+  fprintf(errf, "%s altimeterSetup()\n", getTimeStamp());
 
   setQFF(42.29, 46, 1);
-  printf("%s Calculated QFF = %f\n", getTimeStamp(), getQFF());
+  fprintf(errf, "%s Calculated QFF = %f\n", getTimeStamp(), getQFF());
 
   //pthread_t post_id;         // Set up the POST thread
   //pthread_create(&post_id, &attr, post, NULL);
@@ -131,15 +131,15 @@ int main (void)
   sleep(1);                  // Sleep 1s just so we don't power everything on at once
 
   geigerSetup();             // Setup the Geiger circuit
-  printf("%s geigerSetup()\n", getTimeStamp());
+  fprintf(errf, "%s geigerSetup()\n", getTimeStamp());
   geigerStart();             // Start the Geiger circuit
-  printf("%s geigerStart()\n", getTimeStamp());
+  fprintf(errf, "%s geigerStart()\n", getTimeStamp());
 
   HVOn();                    // FIXME: Base this on altitude
-  printf("%s HVOn()\n", getTimeStamp());
+  fprintf(errf, "%s HVOn()\n", getTimeStamp());
 
   geigerReset();             // Reset the Geiger counting variables
-  printf("%s geigerReset()\n", getTimeStamp());
+  fprintf(errf, "%s geigerReset()\n", getTimeStamp());
 
   ms = getTimeMS();          // Save the start time
 
@@ -147,6 +147,8 @@ int main (void)
   fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
   fprintf(stdout, "  Elapsed |    N |       T |     T1 |       P |       P1 |       P2 |        H\n");
   fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
+
+  fprintf(errf, "%s entering main()\n", getTimeStamp());
 
   waitNextNanoSec(1000000000);  // Sleep until next second
 
@@ -168,11 +170,6 @@ int main (void)
       fprintf(stdout, "  Elapsed |    N |       T |     T1 |       P |       P1 |       P2 |        H\n");
       fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
     }
-    // FIXME: This is a silly attempt to make the loop timing more predictable
-    else {
-      fprintf(stdout, "");
-      fprintf(stdout, "");
-    }
 
     // Read the altimeter
     T = readTUncompensated();
@@ -191,16 +188,18 @@ int main (void)
     waitNextNanoSec(1000000000);  // Sleep until next second
   }
 
+  fprintf(errf, "%s exiting main()\n", getTimeStamp());
+
   geigerStop();                 // Stop the Geiger circuit
-  printf("%s geigerStop()\n", getTimeStamp());
+  fprintf(errf, "%s geigerStop()\n", getTimeStamp());
 
   pthread_attr_destroy(&attr);  // Clean up
 
   fclose(csvf);                 // Close the output file
-  printf("%s Closed output file.\n", getTimeStamp());
+  fprintf(errf, "%s Closed output file.\n", getTimeStamp());
 
+  fprintf(errf, "%s Closing log file.\n", getTimeStamp());
   fclose(errf);                 // Close the log file
-  printf("%s Closed log file.\n", getTimeStamp());
 
   return EXIT_SUCCESS;          // Exit
 }

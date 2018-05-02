@@ -22,7 +22,7 @@
  * along with STAR.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************
  */
- 
+
 #ifndef GEIGER_H
 #define GEIGER_H
 
@@ -41,12 +41,10 @@ int sumCounts(int numSecs);
 float averageCounts(int numSecs);
 float cpmTouSv(int numSecs);
 void countInterrupt (void);
-void *count (void *vargp);
 
 // HV routines
 void HVOn(void);
 void HVOff(void);
-void *HVControl (void *vargp);
 
 // Setup routines
 void geigerSetTime(unsigned long seconds);

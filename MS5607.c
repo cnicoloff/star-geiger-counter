@@ -164,7 +164,7 @@ unsigned long altimeterADC(char cmd) {
  * altimeterCRC4(): This is a CRC check
  *****************************************************************************
  */
- 
+
 unsigned char altimeterCRC4(unsigned int n_prom[]) {
   int cnt;                // simple counter
   unsigned int n_rem;     // crc reminder
@@ -232,7 +232,7 @@ double calcDT(unsigned long T) {
  * calcOffset: Calculate the offset at the actual temperature
  *****************************************************************************
  */
- 
+
 double calcOffset(unsigned long T) {
   double dT = calcDT(T);
   return (C[2] * pow(2,17)) + (dT * C[4]) / pow(2,6);
@@ -242,7 +242,7 @@ double calcOffset(unsigned long T) {
  * calcSens: Calculate the sensitivity at the actual temperature
  *****************************************************************************
  */
- 
+
 double calcSens(unsigned long T) {
   double dT = calcDT(T);
   return (C[1] * pow(2,16)) + (dT * C[3]) / pow(2,7);
@@ -253,7 +253,7 @@ double calcSens(unsigned long T) {
  *                  order algorithm.
  *****************************************************************************
  */
- 
+
 double calcFirstOrderP(unsigned long T, unsigned long P) {
   double Pcomp = 0.0; // compensated temperature value
   double offset;      // offset at actual temperature
@@ -273,7 +273,7 @@ double calcFirstOrderP(unsigned long T, unsigned long P) {
  *                  order algorithm.
  *****************************************************************************
  */
- 
+
 double calcFirstOrderT(unsigned long T) {
   double Tcomp = 0.0; // compensated temperature value
   double dT;          // difference between actual and measured temperature
@@ -291,7 +291,7 @@ double calcFirstOrderT(unsigned long T) {
  *                   order non-linear algorithm.
  *****************************************************************************
  */
- 
+
 double calcSecondOrderP(unsigned long T, unsigned long P) {
   double Pcomp = 0.0;                 // compensated pressure value
   double temp = calcFirstOrderT(T);   // first order temperature value
@@ -344,11 +344,8 @@ double calcSecondOrderP(unsigned long T, unsigned long P) {
   float R = 287.053;    // gas constant of air at sea level
   float g = 9.80665;    // acceleration due to gravity, m/s^2
   float Ts = 288.15;    // temperature at sea level, K
-  float L = -0.0065;    // lapse rate of the atmosphere
-  
 
-  return Ts/L * (pow((P/QFF),-L*R/g)-1);
-  //return (R/g) * ((Ts + temp + 273.15) / 2.0) * log(QFF/pressure);
+  return (R/g) * ((Ts + temp + 273.15) / 2.0) * log(QFF/pressure);
 }
 
 /*

@@ -40,7 +40,7 @@ static int size = 60;             // Array size
 static volatile int secNum;       // Which index in the seconds array
 static volatile int sec[60]={0};  // Array of collected counts per second
 
-/* 
+/*
 static volatile int minNum;       // Which index of the minutes array
 static volatile int min[60]={0};  // Array of collected counts per minute
 static volatile int hourNum;      // Which index of the hours array
@@ -197,14 +197,14 @@ int getIndex(int numIndex) {
  */
 
 int sumCounts(int numSecs) {
-  
+
   // FIXME: This function misbehaves at T=numSecs!
 
   int total = 0;                                                    // Total counts
   int numHours = (numSecs / 3600) % size;                           // Seconds to hours
   int numMins = ((numSecs - (numHours * 3600)) / 60) % size;        // Seconds to minutes
   numSecs = (numSecs - (numMins * 60) - (numHours * 3600)) % size;  // Remaining seconds
-  
+
   // Sum hours
   //for (int i=0; i < numHours; i++) {
   //  total += hour[getIndex(hourNum - i)];
@@ -265,31 +265,6 @@ float cpmTouSv(int numSecs) {
 }
 
 /*
- * count: Thread to handle count_related activities.
- *****************************************************************************
- */
-
-void *count (void *vargp) {
-  
-  while (keepRunning) {
-
-    waitNextNanoSec(1000000000);
-
-    // Increment the seconds counter
-    secNum++;
-
-    // Roll the seconds buffer
-    if (secNum % size == 0) {
-      secNum = 0;
-    }
-
-    sec[secNum] = 0;  // Initialize the current second data to zero
-  }
-
-  pthread_exit(NULL);
-}
-
-/*
  * HVOn: Turns HV on and logs it.
  *****************************************************************************
  */
@@ -316,58 +291,24 @@ void HVOff (void) {
 }
 
 /*
- * HVControl: Turns HV on and off
- *****************************************************************************
- */
-
-void *HVControl (void *vargp) {
-
-  while (keepRunning) {
-    // Is HV supposed to be on?
-    if ((turnHVOn) && (!HVisOn)) {
-      HVOn();   // Turn HV on
-    }
-    // Is HV supposed to be off?
-    else if ((!turnHVOn) && (HVisOn)) {
-      HVOff();  // Turn HV off
-    }
-
-    sleep(1);
-  }
-
-  HVOff();
-  pthread_exit(NULL);
-}
-
-/*
  * geigerSetTime: Sets the Geiger counting variables
  *
  *                seconds is the elapsed seconds since start
  *****************************************************************************
  */
 void geigerSetTime(unsigned long seconds) {
-  
-  int numHours = (seconds / 3600) % size;                               // Seconds to hours
-  int numMins = ((seconds - (numHours * 3600)) / 60) % size;            // Seconds to minutes
-  int numSecs = (seconds - (numMins * 60) - (numHours * 3600)) % size;  // Remaining seconds
 
-  //printf("geigerOldTime: %02d:%02d:%02d\n", hourNum, minNum, secNum);
+  int numHours = (seconds / 3600);                                      // Seconds to hours
+  int numMins = ((seconds - (numHours * 3600)) / 60);                   // Seconds to minutes
+  int numSecs = (seconds - (numMins * 60) - (numHours * 3600));         // Remaining seconds
 
-  // Set counting variables
-  //if (numHours != hourNum) {
-  //  hourNum = numHours;
-  //  hour[hourNum] = 0;
-  //}
-  //if (numMins != minNum) {
-  //  minNum = numMins;
-  //  min[minNum] = 0;
-  //}
+  // We only care about the seconds buffer
+  numSecs = numSecs % size;
+
   if (numSecs != secNum) {
     secNum = numSecs;
     sec[secNum] = 0;
   }
-  
-  //printf("geigerSetTime: %02d:%02d:%02d\n", hourNum, minNum, secNum);
 }
 
 

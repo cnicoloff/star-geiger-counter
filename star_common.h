@@ -24,9 +24,11 @@
 #ifndef STAR_COMMON_H
 #define STAR_COMMON_H
 
+unsigned long long getTimeNS(void);
 unsigned long getTimeMS(void);
 const char * getTimeStamp(void);
-void waitNextNanoSec(long interval);
+void waitNanoSec(long interval);
+void waitNextSec(void);
 double roundPrecision(double val, int precision);
 float cvtCtoF(double temp);
 float cvtMbtoIn(double pressure);

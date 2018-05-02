@@ -68,19 +68,17 @@ const char * getTimeStamp(void) {
   int s = ms / 1000;
   ms -= s * 1000;
 
-  sprintf(ts, "[%02d:%02d:%02d.%03d]", h, m, s, ms);
+  sprintf(ts, "[%02d:%02d:%02d.%03ld]", h, m, s, ms);
   return ts;
 }
 
 /*
- * waitNextNanoSec: Attempts to wait until the next whole interval, accurate to
- *                  maybe 10-20ms.  The maximum interval is 1s.
- *
- *                  interval is specified in nanoseconds
+ * waitNanoSec: Waits for a specified number of nanoseconds.
+ *              The maximum interval is 999999999 ns.
  *****************************************************************************
  */
 
-void waitNextNanoSec(long interval) {
+void waitNanoSec(long interval) {
   struct timespec tim, tim2, rem;
 
   // Get the current time
@@ -102,11 +100,29 @@ void waitNextNanoSec(long interval) {
 }
 
 /*
+ * waitNextSec: Attempts to wait until the next whole second.
+ *****************************************************************************
+ */
+
+void waitNextSec(void) {
+  struct timespec tim, tim2, rem;
+  long wait_ns, wait_sec;
+
+  // Get the current time
+  clock_gettime(CLOCK_REALTIME, &tim);
+
+  tim2.tv_nsec = 999999999 - tim.tv_nsec;
+  tim2.tv_sec = 0;         // zero seconds
+
+  nanosleep(&tim2, &rem);
+}
+
+/*
  * roundPrecision: Round a value to a certain number of digits after the
  *                 decimal point
  *****************************************************************************
  */
- 
+
 double roundPrecision(double val, int precision) {
   long p10 = pow(10, precision);
   double valR;

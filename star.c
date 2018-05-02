@@ -45,8 +45,7 @@ struct data_second {
 };
 
 static volatile bool keepRunning;     // main() infinite loop
-static int buffer_seconds = 5;        // How many seconds of data to log to file at once
-static volatile struct data_second data[buffer_seconds];  // Data to log to file
+static int buffer_seconds = 10;
 
 /*
  * breakHandler: Captures CTRL-C so we can shut down cleanly.
@@ -85,6 +84,8 @@ void *post (void *vargp) {
 
 int main (void)
 {
+  // Buffer a certain number of seconds of data to log to file
+  struct data_second data[buffer_seconds];
 
   // Set up a signal handler for CTRL-C
   struct sigaction act;
@@ -102,7 +103,7 @@ int main (void)
     fprintf(stderr, "Can't open output file!\n");
     exit(1);
   }
-  
+
   setbuf(csvf, NULL);             // Do not buffer, write directly to disk!
 
   // Define the log file
@@ -117,8 +118,6 @@ int main (void)
   }
 
   setbuf(errf, NULL);            // Do not buffer, write directly to disk!
-
-  // FIXME: Put a timestamp in the error log
 
   // Set up the attribute that allows our threads to run detached
   pthread_attr_t attr;
@@ -135,10 +134,11 @@ int main (void)
   //pthread_t post_id;         // Set up the POST thread
   //pthread_create(&post_id, &attr, post, NULL);
 
-  unsigned long ms;
-  float elapsed;
-  int counts;
-  int curSec;
+  unsigned long start_time;   // Time the main loop started
+  float elapsed;              // Elapsed time since the main loop started
+  int curSec;                 // The current second we are addressing in the counts buffer
+  int bufSec = 0;             // The current second we are addressing in the write buffer
+  int counts;                 // Number of counts in the last second
 
   sleep(1);                  // Sleep 1s just so we don't power everything on at once
 
@@ -153,8 +153,6 @@ int main (void)
   geigerReset();             // Reset the Geiger counting variables
   fprintf(errf, "%s geigerReset()\n", getTimeStamp());
 
-  ms = getTimeMS();          // Save the start time
-
   fprintf(csvf, "Elapsed, Counts, T (Raw), T1 (C), P (Raw), P1 (mbar), P2 (mbar), Altitude (m)\n");
   fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
   fprintf(stdout, "  Elapsed |    N |       T |     T1 |       P |       P1 |       P2 |        H\n");
@@ -162,22 +160,27 @@ int main (void)
 
   fprintf(errf, "%s entering main()\n", getTimeStamp());
 
-  waitNextNanoSec(1000000000);  // Sleep until next second
+  waitNextSec();                // Sleep until next second
+
+  start_time = getTimeMS();     // Save the start time
 
   // Loop forever or until CTRL-C
   while (keepRunning) {
 
     // Elapsed time since start
-    elapsed = (getTimeMS() - ms) / 1000.0;
-
-    // Whole number of current second
-    curSec = (long)elapsed % 5;
+    elapsed = (getTimeMS() - start_time) / 1000.0;
 
     // Get the counts from the last second
     counts = sumCounts(1);
 
+    // Whole number of current second
+    curSec = (long)elapsed;
+
     // Advance the count timer
     geigerSetTime(curSec);
+
+    // Wrap around the circular write buffer
+    bufSec = curSec % buffer_seconds;
 
     // Every so often, print the header to screen
     if ((curSec % 20 == 0) && (curSec != 0)) {
@@ -186,28 +189,28 @@ int main (void)
       fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
     }
 
-    data[curSec].elapsed = elapsed;
-    data[curSec].counts = counts;
-    data[curSec].T = readTUncompensated();
-    data[curSec].P = readPUncompensated();
+    data[bufSec].elapsed = elapsed;
+    data[bufSec].counts = counts;
+    data[bufSec].T = readTUncompensated();
+    data[bufSec].P = readPUncompensated();
 
     // Do some calculations
-    data[curSec].T1 = calcFirstOrderT(data[curSec].T);
-    data[curSec].P1 = calcFirstOrderP(data[curSec].T, data[curSec].P);
-    data[curSec].P2 = calcSecondOrderP(data[curSec].T, data[curSec].P);
-    data[curSec].altitude = calcAltitude(data[curSec].P2, data[curSec].T1);
+    data[bufSec].T1 = calcFirstOrderT(data[bufSec].T);
+    data[bufSec].P1 = calcFirstOrderP(data[bufSec].T, data[bufSec].P);
+    data[bufSec].P2 = calcSecondOrderP(data[bufSec].T, data[bufSec].P);
+    data[bufSec].altitude = calcAltitude(data[bufSec].P2, data[bufSec].T1);
 
-    // Every 5 seconds, write to file
-    if (curSec == (buffer_seconds - 1)) {
-      for (int i = 0); i < buffer_seconds; i++) {
+    // Every so often, write to file
+    if (bufSec == (buffer_seconds - 1)) {
+      for (int i = 0; i < buffer_seconds; i++) {
         fprintf(csvf, "%f, %d, %ld, %f, %ld, %f, %f, %f\n", data[i].elapsed, data[i].counts, data[i].T, data[i].T1, data[i].P, data[i].P1, data[i].P2, data[i].altitude);
       }
     }
 
     // Write some output
-    fprintf(stdout, "%9.3f | %4d | %7ld | %6.2f | %7ld | %7.3f | %7.3f | %8.2f\n", data[curSec].elapsed, data[curSec].counts, data[curSec].T, data[curSec].T1, data[curSec].P, data[curSec].P1, data[curSec].P2, data[curSec].altitude);
+    fprintf(stdout, "%9.3f | %4d | %7ld | %6.2f | %7ld | %7.3f | %7.3f | %8.2f\n", data[bufSec].elapsed, data[bufSec].counts, data[bufSec].T, data[bufSec].T1, data[bufSec].P, data[bufSec].P1, data[bufSec].P2, data[bufSec].altitude);
 
-    waitNextNanoSec(1000000000);  // Sleep until next second
+    waitNextSec();  // Sleep one second
   }
 
   fprintf(errf, "%s exiting main()\n", getTimeStamp());

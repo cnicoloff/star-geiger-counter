@@ -55,6 +55,8 @@ struct data_second {
    double P1;
    double P2;
    float altitude;
+   double deadTime;
+   int deadCounts;
 };
 
 // Buffer five seconds before writing to file
@@ -100,6 +102,8 @@ int main (void)
   unsigned long curSec = 0;   // The current second we are addressing in the counts buffer
   int bufSec = 0;             // The current second we are addressing in the write buffer
   int counts = 0;             // Number of counts in the last second
+  int deadCounts = 0;         // Number of dead time counts in the last second
+  double deadTime = 0;        // Amount of dead time in the last second
   int c[8];                   // Altimeter calibration coefficients
 
 
@@ -201,7 +205,13 @@ int main (void)
     DEBUG_PRINT("getTimeMS() %lld, start_time %lld, elapsed %f\n", getTimeMS(), start_time, elapsed);
 
     // Get the counts from the last second
-    counts = sumCounts(1);
+    counts = getCounts(curSec);
+
+    // Get the dead time from the last second
+    deadTime = getDeadTime(curSec);
+
+    // Get the dead time counts from the last second
+    deadCounts = getDeadCounts(curSec);
 
     // Whole number of current second
     curSec = elapsed;
@@ -218,9 +228,9 @@ int main (void)
 
     // Every so often, print the header to screen
     if (curSec % 20 == 0) {
-      printf("-----+-----------+------+---------+--------+---------+----------+----------+----------\n");
-      printf(" Buf |   Elapsed |    N |       T |     T1 |       P |       P1 |       P2 |        H\n");
-      printf("-----+-----------+------+---------+--------+---------+----------+----------+----------\n");
+      printf("-----+-----------+------+---------+--------+---------+----------+----------+----------+----------+-----\n");
+      printf(" Buf |   Elapsed |    N |       T |     T1 |       P |       P1 |       P2 |        H | Deadtime |  DTC \n");
+      printf("-----+-----------+------+---------+--------+---------+----------+----------+----------+----------+-----\n");
     }
 
     // Put data into our struct
@@ -229,6 +239,8 @@ int main (void)
     // If HV is on, record counts
     if (getHVOn() == true) {
       data[bufSec].counts = counts;
+      data[bufSec].deadTime = deadTime;
+      data[bufSec].deadCounts = deadCounts;
     }
     // If HV is not on, record an impossible result
     else {
@@ -250,7 +262,7 @@ int main (void)
       // If we're above our threshold altitude, turn HV on
       if (data[bufSec].altitude > geigerAlt) {
 
-        fprintf(csvf, "Elapsed, Counts, T (Raw), T1 (C), P (Raw), P1 (mbar), P2 (mbar), Altitude (m)\n");
+        fprintf(csvf, "Elapsed, Counts, T (Raw), T1 (C), P (Raw), P1 (mbar), P2 (mbar), Altitude (m), Dead Time (s), Dead Time Counts\n");
 
         HVOn();                    // Turn the Geiger tube on
         fprintf(errf, "%s HVOn()\n", getTimeStamp());
@@ -276,7 +288,7 @@ int main (void)
     // Every so often, write to file
     if (bufSec == (buffer_seconds - 1)) {
       for (int i = 0; i < buffer_seconds; i++) {
-        fprintf(csvf, "%f, %d, %ld, %f, %ld, %f, %f, %f\n", data[i].elapsed, data[i].counts, data[i].T, data[i].T1, data[i].P, data[i].P1, data[i].P2, data[i].altitude);
+        fprintf(csvf, "%lf, %d, %ld, %lf, %ld, %lf, %lf, %f, %lf, %d\n", data[i].elapsed, data[i].counts, data[i].T, data[i].T1, data[i].P, data[i].P1, data[i].P2, data[i].altitude, data[i].deadTime, data[i].deadCounts);
       }
     }
 
@@ -287,7 +299,7 @@ int main (void)
     }
 
     // Write some output to the screen
-    printf("  %2d | %9.3f | %4d | %7ld | %6.2f | %7ld | %8.3f | %8.3f | %8.2f\n", getSecNum(), data[bufSec].elapsed, data[bufSec].counts, data[bufSec].T, data[bufSec].T1, data[bufSec].P, data[bufSec].P1, data[bufSec].P2, data[bufSec].altitude);
+    printf("  %2d | %9.3lf | %4d | %7ld | %6.2lf | %7ld | %8.3lf | %8.3lf | %8.2f | %1.6lf | %4d\n", getSecNum(), data[bufSec].elapsed, data[bufSec].counts, data[bufSec].T, data[bufSec].T1, data[bufSec].P, data[bufSec].P1, data[bufSec].P2, data[bufSec].altitude, deadTime, deadCounts);
 
     waitNextSec();              // Sleep until next second
   }

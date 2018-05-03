@@ -35,10 +35,13 @@ void *blinkLED (void *vargp);
 int getSecNum(void);
 void setSecNum(unsigned long seconds);
 int getIndex(int numIndex);
+double getDeadTime(int numSecs);
+int getDeadCounts(int numSecs);
+int getCounts(int numSecs);
 int sumCounts(int numSecs);
 float averageCounts(int numSecs);
 float cpmTouSv(int numSecs);
-void countInterrupt (void);
+void countInterrupt(void);
 
 // HV routines
 void HVOn(void);

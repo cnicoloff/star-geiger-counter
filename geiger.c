@@ -42,6 +42,14 @@
   #define DEBUG_PRINT(...) do { } while (false)
 #endif
 
+#ifdef DEBUG2
+  #define DEBUG2_PRINT(...) do { fprintf(stderr, __VA_ARGS__); } while(false)
+#else
+  #define DEBUG2_PRINT(...) do { } while (false)
+#endif
+
+static int size = 60;           // Array size
+
 volatile int secNum;            // Which index in the seconds array
 volatile int sec[60];           // Array of collected counts per second
 
@@ -50,10 +58,13 @@ volatile bool LEDisOn;          // Is LED on?
 volatile bool keepRunning;      // Signals when to exit
 volatile bool HVisOn;           // Is HV on?
 
-pthread_mutex_t lock_sec;       // Prevent a race condition involving secNum read/write
-pthread_mutex_t lock_hv;        // Prevent a race condition involving secNum read/write
+volatile unsigned long long t1, t2; // Used for dead time calculations
+volatile double deadTime[60];       // Array of dead time totals per secons
+volatile int deadCounts[60];
 
-static int size = 60;  // Array size
+pthread_mutex_t lock_sec;       // Prevent a race condition involving secNum read/write
+pthread_mutex_t lock_hv;        // Prevent a race condition involving HVisOn read/write
+pthread_mutex_t lock_count;     // Prevent a race condition involving edgeLow read/write
 
 // Initialize the GPIO pins.  Note that these are not the BCM GPIO pin
 // numbers or the physical header pin numbers!  Conversion table is at
@@ -63,7 +74,7 @@ static int geigerPin = 5;
 static int gatePin = 6;
 
 // How long to flash the LED when a count is recorded, in milliseconds
-static int flashTime = 10;
+static int flashTime = 5;
 
 
 
@@ -76,8 +87,8 @@ int getSecNum(void) {
   int ret;
 
   pthread_mutex_lock(&lock_sec);
-  DEBUG_PRINT("    getSecNum()\n");
-  DEBUG_PRINT("        secNum: %d\n", secNum);
+  DEBUG2_PRINT("    getSecNum()\n");
+  DEBUG2_PRINT("        secNum: %d\n", secNum);
   ret = secNum;
   pthread_mutex_unlock(&lock_sec);
 
@@ -96,22 +107,26 @@ void setSecNum(unsigned long seconds) {
   int numSecs = 0;
 
   pthread_mutex_lock(&lock_sec);
+  pthread_mutex_lock(&lock_count);
 
-  DEBUG_PRINT("    setSecNum(%ld)\n", seconds);
-  DEBUG_PRINT("        seconds: %ld\n", seconds);
+  DEBUG2_PRINT("    setSecNum(%ld)\n", seconds);
+  DEBUG2_PRINT("        seconds: %ld\n", seconds);
 
   // We only care about the seconds buffer
   numSecs = seconds % size;
-  DEBUG_PRINT("        numSecs: %d\n", numSecs);
+  DEBUG2_PRINT("        numSecs: %d\n", numSecs);
 
   // If it's not the same second, initialize the array element
   if (numSecs != secNum) {
     sec[numSecs] = 0;
+    deadTime[numSecs] = 0;
+    deadCounts[numSecs] = 0;
   }
   secNum = numSecs;
-  DEBUG_PRINT("        secNum: %d\n", secNum);
+  DEBUG2_PRINT("        secNum: %d\n", secNum);
 
   pthread_mutex_unlock(&lock_sec);
+  pthread_mutex_unlock(&lock_count);
 }
 
 /*
@@ -120,12 +135,65 @@ void setSecNum(unsigned long seconds) {
  */
 
 void countInterrupt(void) {
-  DEBUG_PRINT("countInterrupt()\n");
-  // Increment the counter
-  sec[getSecNum()]++;
+  struct timespec tim1, tim2;
+  double dt_s;
 
-  // Tell the LED thread to light up
-  LEDTime += flashTime;
+  pthread_mutex_lock(&lock_count);
+
+  // Waiting for the falling edge
+  if (t1 == 0) {
+    clock_gettime(CLOCK_MONOTONIC, &tim1);
+
+    // Increment the counter
+    sec[getSecNum()]++;
+
+    // Tell the LED thread to light up
+    LEDTime += flashTime;
+
+    // Set the time that the falling pulse began
+    t1 = t2 = tim1.tv_sec * 1000000000 + tim1.tv_nsec;
+  }
+  // Waiting for the rising edge
+  else if (t1 == t2) {
+    clock_gettime(CLOCK_MONOTONIC, &tim2);
+
+    // Set the time that the rising pulse began
+    t2 = tim2.tv_sec * 1000000000 + tim2.tv_nsec;
+
+    // Get the time distance between the two
+    dt_s = (t2 - t1) / 1000000000.0;
+
+    // The time distance was positive
+    if (dt_s > 0) {
+      // The time distance is realistic
+      if (dt_s <= 0.005) {
+
+        // Add some dead time
+        deadTime[getSecNum()] += dt_s;
+        deadCounts[getSecNum()] += 1;
+        DEBUG_PRINT("%lf\n", dt_s);
+
+        // Reset and wait for another pulse
+        t1 = 0;
+      }
+      // The time distance wasn't realistic
+      else {
+        // Assume we somehow got double falling or rising edges
+        // t1 is now t2
+        t1 = t2;
+      }
+    }
+    // The time distance was negative, I don't know how to handle this
+    else {
+      DEBUG_PRINT("%lld < %lld\n", t2, t1);
+    }
+  }
+  // This state should be impossible
+  else {
+      DEBUG_PRINT("t1 != t2\n");
+  }
+
+  pthread_mutex_unlock(&lock_count);
 }
 
 /*
@@ -156,7 +224,6 @@ void LEDOff (void) {
  */
 
 void *blinkLED (void *vargp) {
-
 
   // Set up nanosleep() for blinking
   struct timespec tim;
@@ -212,13 +279,41 @@ int getIndex(int numIndex) {
   return numIndex;
 }
 
+
+/*
+ * getDeadTime: Get the dead time associated with a given second.
+ *****************************************************************************
+ */
+
+double getDeadTime(int numSecs) {
+  return deadTime[numSecs % size];
+}
+
+/*
+ * getDeadCounts: Get the dead time counts associated with a given second.
+ *****************************************************************************
+ */
+
+int getDeadCounts(int numSecs) {
+  return deadCounts[numSecs % size];
+}
+
+/*
+ * getCounts: Get the number of counts associated with a given second.
+ *****************************************************************************
+ */
+
+int getCounts(int numSecs) {
+  return sec[numSecs % size];
+}
+
 /*
  * sumCounts: Sum the number of counts across the last numSecs seconds.
  *****************************************************************************
  */
 
 int sumCounts(int numSecs) {
-  DEBUG_PRINT("sumCounts(%d)\n", numSecs);
+  DEBUG2_PRINT("sumCounts(%d)\n", numSecs);
 
   int total = 0;
 
@@ -331,6 +426,8 @@ int geigerReset(void) {
     sec[i] = 0;
   }
 
+  t1 = t2 = 0;
+
   return 0;
 }
 
@@ -341,7 +438,7 @@ int geigerReset(void) {
 
 int geigerSetup(void) {
 
-  wiringPiSetup();
+  wiringPiSetup();           // Initialize wiringPi
 
   HVisOn = false;            // HV is off by default
 
@@ -353,11 +450,13 @@ int geigerSetup(void) {
 
   // Configure wiringPi to detect pulses with a falling
   // edge on the Geiger pin
-  wiringPiISR(geigerPin, INT_EDGE_FALLING, &countInterrupt);
+  wiringPiISR(geigerPin, INT_EDGE_BOTH, &countInterrupt);
   pullUpDnControl(geigerPin, PUD_OFF);  // Pull up/down resistors off
+  t1 = t2 = 0.0;
 
   pthread_mutex_init(&lock_sec, NULL);
   pthread_mutex_init(&lock_hv, NULL);
+  pthread_mutex_init(&lock_count, NULL);
 
   return 0;
 }
@@ -391,4 +490,5 @@ void geigerStop() {
   HVOff();                      // Make sure HV is off
   pthread_mutex_destroy(&lock_sec);
   pthread_mutex_destroy(&lock_hv);
+  pthread_mutex_destroy(&lock_count);
 }

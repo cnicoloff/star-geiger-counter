@@ -105,6 +105,7 @@ int main (int argc, char *argv[]) {
   double deadTime = 0;        // Amount of dead time in the last second
   int c[8];                   // Altimeter calibration coefficients
   int opt;                    // Command line options
+  char ts[40];                // Timestamp
 
   // Parse simple command line options
   while ((opt = getopt(argc, argv, "t")) != -1) {
@@ -129,10 +130,13 @@ int main (int argc, char *argv[]) {
   srand(time(NULL));
   int r = rand();
 
+  // Get the time stamp and trim it
+  sprintf(ts, "%s", getDateTimeStamp());
+
   // Define the output file
   FILE *csvf;
   char csvfname[100];
-  sprintf(csvfname, "counts_%s_%d.txt", getTimeStamp(), r);
+  sprintf(csvfname, "counts_%s_%d.txt", ts, r);
 
   // Attempt to open our output file, write+append
   csvf = fopen(csvfname, "aw");
@@ -150,7 +154,7 @@ int main (int argc, char *argv[]) {
   // Define the log file
   FILE *errf;
   char errfname[100];
-  sprintf(errfname, "error_%s_%d.txt", getTimeStamp(), r);
+  sprintf(errfname, "error_%s_%d.txt", ts, r);
 
   // Attempt to open our log file, write+append
   errf = fopen(errfname, "aw");

@@ -27,6 +27,7 @@
 unsigned long long getTimeNS(void);
 unsigned long long getTimeMS(void);
 const char * getTimeStamp(void);
+const char * getDateTimeStamp(void);
 void waitNanoSec(long interval);
 void waitNextSec(void);
 double roundPrecision(double val, int precision);

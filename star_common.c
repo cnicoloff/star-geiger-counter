@@ -73,6 +73,22 @@ const char * getTimeStamp(void) {
 }
 
 /*
+ * getDateTimeStamp: Gets the current timestamp YYYY-MM-DD.HH.MM.SS
+ *****************************************************************************
+ */
+
+const char * getDateTimeStamp(void) {
+  static char ts[20] = {0};
+  time_t now = time(0);
+  struct tm tstruct;
+
+  tstruct = *localtime(&now);
+  strftime(ts, sizeof(ts), "%Y-%m-%d_%H-%M-%S", &tstruct);
+
+  return ts;
+}
+
+/*
  * waitNanoSec: Waits for a specified number of nanoseconds.
  *              The maximum interval is 999999999 ns.
  *****************************************************************************

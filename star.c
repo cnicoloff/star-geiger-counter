@@ -44,6 +44,7 @@
   #define DEBUG2_PRINT(...) do { } while(false)
 #endif
 
+
 // A structure to hold onto the last <buffer_seconds> seconds of data
 struct data_second {
    double elapsed;
@@ -64,13 +65,12 @@ static int buffer_seconds = 5;
 // Keep the main loop running forever unless CTRL-C
 volatile bool keepRunning;
 
-// FIXME: Change these before launch!
 // Minimum altitude before Geiger circuit turns on
 static int geigerAlt = 100;
 
 // The dead band keeps small altitude fluctuations from
 // turning the Geiger circuit on and off quickly
-static int deadBand = 20;
+static int deadBand = 10;
 
 
 /*
@@ -92,8 +92,7 @@ void breakHandler(int s) {
  *****************************************************************************
  */
 
-int main (void)
-{
+int main (int argc, char *argv[]) {
 
   int result = 0;             // Result of file operations
   bool doPost = true;         // Do a POST when first started
@@ -105,7 +104,17 @@ int main (void)
   int deadCounts = 0;         // Number of dead time counts in the last second
   double deadTime = 0;        // Amount of dead time in the last second
   int c[8];                   // Altimeter calibration coefficients
+  int opt;                    // Command line options
 
+  // Parse simple command line options
+  while ((opt = getopt(argc, argv, "t")) != -1) {
+    switch (opt) {
+    case 't': geigerAlt = 0; break;  // Bypass the altitude limitations
+    default:
+      fprintf(stderr, "Usage: %s [-t]\n", argv[0]);
+      exit(EXIT_FAILURE);
+    }
+  }
 
   // Buffer a certain number of seconds of data
   // so we're not saving to disk every second
@@ -127,7 +136,7 @@ int main (void)
   if (csvf == NULL) {
     DEBUG_PRINT("Can't open data file!\n");
     fprintf(stderr, "Can't open data file!\n");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
   // Do not buffer, write directly to disk!
@@ -144,7 +153,7 @@ int main (void)
   if (errf == NULL) {
     DEBUG_PRINT("Can't open log file!\n");
     fprintf(stderr, "Can't open log file!\n");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
   // Do not buffer, write directly to disk!
@@ -349,11 +358,3 @@ int main (void)
 
   return EXIT_SUCCESS;
 }
-
-
-
-
-
-
-
-

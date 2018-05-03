@@ -169,7 +169,7 @@ void countInterrupt(void) {
     // The time distance was positive
     if (dt_s > 0) {
       // The time distance is realistic
-      if (dt_s <= 0.005) {
+      if (dt_s <= 0.000750) {
 
         // Add some dead time
         deadTime[getSecNum()] += dt_s;
@@ -181,7 +181,7 @@ void countInterrupt(void) {
       }
       // The time distance wasn't realistic
       else {
-        // Assume we somehow got double falling or rising edges
+        // Assume we somehow got double falling edges
         // t1 is now t2
         t1 = t2;
       }

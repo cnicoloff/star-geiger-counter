@@ -236,6 +236,7 @@ int main (void)
 
       if ((curSec % 60 == 0) && (curSec != 0)) {
         fprintf(errf, "%s main(): 60 seconds\n", getTimeStamp());
+      }
 
       // Write some output
       fprintf(stdout, "%9.3f | %4d | %7ld | %6.2f | %7ld | %7.3f | %7.3f | %8.2f\n", data[bufSec].elapsed, data[bufSec].counts, data[bufSec].T, data[bufSec].T1, data[bufSec].P, data[bufSec].P1, data[bufSec].P2, data[bufSec].altitude);

@@ -58,17 +58,20 @@ unsigned long long getTimeMS(void) {
  */
 
 const char * getTimeStamp(void) {
+  double ms = getTimeMS() / 1000000.0;
+  unsigned int h, m;
+  unsigned long s = ms;
   static char ts[12] = {0};
-  unsigned long ms = getTimeMS();
 
-  int h = ms / 3600000;
-  ms -= h * 3600000;
-  int m = ms / 60000;
-  ms -= m * 60000;
-  int s = ms / 1000;
-  ms -= s * 1000;
+  // Calculate hours
+  h = s / 3600;
+  s %= 3600;
+  // Calculate minutes
+  m = s / 60;
+  s %= 60;
 
-  sprintf(ts, "[%02d:%02d:%02d.%03ld]", h, m, s, ms);
+  sprintf(ts, "[%2d:%2d:%2ld.%.3f]", h, m, s, ms);
+
   return ts;
 }
 
@@ -79,10 +82,13 @@ const char * getTimeStamp(void) {
 
 const char * getDateTimeStamp(void) {
   static char ts[20] = {0};
-  time_t now = time(0);
   struct tm tstruct;
 
+  // Get the current time (UTC)
+  time_t now = time(0);
+  // Convert to the local time
   tstruct = *localtime(&now);
+
   strftime(ts, sizeof(ts), "%Y-%m-%d_%H-%M-%S", &tstruct);
 
   return ts;
@@ -141,8 +147,11 @@ double roundPrecision(double val, int precision) {
   long p10 = pow(10, precision);
   double valR;
 
+  // Multiply by 10^precision
   valR = val * p10;
+  // Round up
   valR = ceil(valR);
+  // Divide by 10^precision
   valR /= p10;
 
   return valR;

@@ -25,9 +25,9 @@
  * along with STAR.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************
  */
- 
-#ifndef GEIGERSPI_H
-#define GEIGERSPI_H
+
+#ifndef PISPI_H
+#define PIPI_H
 
 void SPISetDelay(unsigned short delay);
 unsigned short SPIGetDelay(void);

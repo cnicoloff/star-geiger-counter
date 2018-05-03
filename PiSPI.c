@@ -43,8 +43,7 @@ static unsigned int spiSpeeds[2];               // SPI bus speeds
 static int spiFds[2];                           // SPI file descriptors
 
 /*
- * SPISetDelay: Sets the delay between ??? to a specific number of
- *              microseconds
+ * SPISetDelay: Sets the delay to a specific number of microseconds
  *****************************************************************************
  */
 void SPISetDelay(unsigned short delay) {
@@ -86,12 +85,12 @@ int SPIDataRW(int channel, unsigned char *data, int len) {
   struct spi_ioc_transfer spi;  // Create an SPI struct
   channel &= 1;                 // Enforce channel 0 or 1
 
-  memset(&spi, 0, sizeof(spi)); // FIXME
+  memset(&spi, 0, sizeof(spi)); // Allocate memory for the struct
 
   spi.tx_buf        = (unsigned long)data; // TX buffer
   spi.rx_buf        = (unsigned long)data; // RX buffer is the same as TX 
   spi.len           = len;                 // Number of chars to send
-  spi.delay_usecs   = spiDelay;            // Delay between FIXME
+  spi.delay_usecs   = spiDelay;            // Delay between read/write
   spi.speed_hz      = spiSpeeds[channel];  // Bus speed of device
   spi.bits_per_word = spiBPW;              // Bits per word
 

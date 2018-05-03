@@ -109,6 +109,7 @@ void setSecNum(unsigned long seconds) {
 
   pthread_mutex_lock(&lock_count);
   pthread_mutex_lock(&lock_sec);
+  pthread_mutex_lock(&lock_led);
 
   DEBUG2_PRINT("    setSecNum(%ld)\n", seconds);
   DEBUG2_PRINT("        seconds: %ld\n", seconds);
@@ -122,10 +123,12 @@ void setSecNum(unsigned long seconds) {
     sec[numSecs] = 0;
     deadTime[numSecs] = 0;
     deadCounts[numSecs] = 0;
+    LEDTime = 0;
   }
   secNum = numSecs;
   DEBUG2_PRINT("        secNum: %d\n", secNum);
 
+  pthread_mutex_unlock(&lock_led);
   pthread_mutex_unlock(&lock_sec);
   pthread_mutex_unlock(&lock_count);
 }
@@ -139,6 +142,7 @@ void countInterrupt(void) {
   struct timespec tim1, tim2;
   double dt_s;
 
+  // Prevent other threads from clobbering this value
   pthread_mutex_lock(&lock_count);
 
   // Waiting for the falling edge
@@ -148,12 +152,13 @@ void countInterrupt(void) {
     // Increment the counter
     sec[getSecNum()]++;
 
-    // Tell the LED thread to light up
+    // Prevent other threads from clobbering this value
     pthread_mutex_lock(&lock_led);
-    LEDTime += flashTime;
+    LEDTime += flashTime;             // Tell the LED to turn on
     pthread_mutex_unlock(&lock_led);
 
-    // Set the time that the falling pulse began
+    // Set the time that the falling pulse began and wait
+    // for a rising edge
     t1 = t2 = tim1.tv_sec * 1000000000 + tim1.tv_nsec;
   }
   // Waiting for the rising edge
@@ -168,30 +173,40 @@ void countInterrupt(void) {
 
     // The time distance was positive
     if (dt_s > 0) {
-      // The time distance is realistic
-      if (dt_s <= 0.000750) {
 
-        // Add some dead time
+      // The time distance was realistic.  600us is around
+      // three times the dead time of the tube
+      if (dt_s <= 0.000600) {
+
+        // Tally the dead time
         deadTime[getSecNum()] += dt_s;
         deadCounts[getSecNum()] += 1;
         DEBUG_PRINT("%lf\n", dt_s);
 
-        // Reset and wait for another pulse
+        // Reset and wait for a falling edge
         t1 = 0;
+
+        // Prevent other threads from clobbering this value
+        pthread_mutex_lock(&lock_led);
+        LEDTime = 0;              // Tell the LED to turn off
+        pthread_mutex_unlock(&lock_led);
       }
+
       // The time distance wasn't realistic
       else {
-        // Assume we somehow got double falling edges
-        // t1 is now t2
+        // Assume we somehow got double falling/rising edges.
+        // We don't know which, but we're out of phase,
+        // so start the timer over at this point
         t1 = t2;
       }
     }
-    // The time distance was negative, I don't know how to handle this
+    // The time distance was negative, I don't know how to handle this.
+    // It shouldn't be happening, but I have seen it with CLOCK_REALTIME
     else {
       DEBUG_PRINT("%lld < %lld\n", t2, t1);
     }
   }
-  // This state should be impossible
+  // This state should be impossible, which means it's probable.
   else {
       DEBUG_PRINT("t1 != t2\n");
   }
@@ -206,11 +221,11 @@ void countInterrupt(void) {
 
 void LEDOn(void) {
 
-  pthread_mutex_lock(&lock_led);
-
   digitalWrite(ledPin, HIGH); // Turn on the LED
-  LEDisOn = true;             // The LED is now on
 
+  // Prevent other threads from clobbering this value
+  pthread_mutex_lock(&lock_led);
+  LEDisOn = true;             // The LED is now on
   pthread_mutex_unlock(&lock_led);
 }
 
@@ -221,12 +236,12 @@ void LEDOn(void) {
 
 void LEDOff(void) {
 
-  pthread_mutex_lock(&lock_led);
-
   digitalWrite(ledPin, LOW); // Turn off the LED
+
+  // Prevent other threads from clobbering this value
+  pthread_mutex_lock(&lock_led);
   LEDisOn = false;           // The LED is now off
   LEDTime = 0;               // Set remaining blink time to zero
-
   pthread_mutex_unlock(&lock_led);
 }
 
@@ -256,6 +271,8 @@ void *blinkLED (void *vargp) {
       if (!LEDisOn) {
         LEDOn();                  // Turn on the LED
       }
+
+      // Prevent other threads from clobbering this value
       pthread_mutex_lock(&lock_led);
       LEDTime -= flashTime;       // Subtract the time it will be lit
       pthread_mutex_unlock(&lock_led);
@@ -303,7 +320,14 @@ int getIndex(int numIndex) {
  */
 
 double getDeadTime(int numSecs) {
-  return deadTime[numSecs % size];
+  int ret;
+
+  // Prevent other threads from clobbering this value
+  pthread_mutex_lock(&lock_count);
+  ret = deadTime[numSecs % size];
+  pthread_mutex_unlock(&lock_count);
+
+  return ret;
 }
 
 /*
@@ -312,7 +336,14 @@ double getDeadTime(int numSecs) {
  */
 
 int getDeadCounts(int numSecs) {
-  return deadCounts[numSecs % size];
+  int ret;
+
+  // Prevent other threads from clobbering this value
+  pthread_mutex_lock(&lock_count);
+  ret = deadCounts[numSecs % size];
+  pthread_mutex_unlock(&lock_count);
+
+  return ret;
 }
 
 /*
@@ -321,7 +352,14 @@ int getDeadCounts(int numSecs) {
  */
 
 int getCounts(int numSecs) {
-  return sec[numSecs % size];
+  int ret;
+
+  // Prevent other threads from clobbering this value
+  pthread_mutex_lock(&lock_count);
+  ret = sec[numSecs % size];
+  pthread_mutex_unlock(&lock_count);
+
+  return ret;
 }
 
 /*
@@ -391,11 +429,11 @@ float cpmTouSv(int numSecs) {
 
 void HVOn (void) {
   if (!HVisOn) {
-    pthread_mutex_lock(&lock_hv);
-
     digitalWrite(gatePin, HIGH);  // Turn on the MOSFET gate pin
-    HVisOn = true;                // HV is now on
 
+    // Prevent other threads from clobbering this value
+    pthread_mutex_lock(&lock_hv);
+    HVisOn = true;                // HV is now on
     pthread_mutex_unlock(&lock_hv);
   }
 }
@@ -407,11 +445,11 @@ void HVOn (void) {
 
 void HVOff (void) {
   if (HVisOn) {
-    pthread_mutex_lock(&lock_hv);
-
     digitalWrite(gatePin, LOW);   // Turn off the MOSFET gate pin
-    HVisOn = false;               // HV is now off
 
+    // Prevent other threads from clobbering this value
+    pthread_mutex_lock(&lock_hv);
+    HVisOn = false;               // HV is now off
     pthread_mutex_unlock(&lock_hv);
   }
 }
@@ -424,6 +462,7 @@ void HVOff (void) {
 bool getHVOn (void) {
   bool ret;
 
+  // Prevent other threads from clobbering this value
   pthread_mutex_lock(&lock_hv);
   ret = HVisOn;
   pthread_mutex_unlock(&lock_hv);
@@ -441,13 +480,15 @@ int geigerReset(void) {
   // Initialize counting variables
   setSecNum(0);
 
-  // Initialize the counting arrays
+  // Prevent other threads from clobbering this value
   pthread_mutex_lock(&lock_sec);
+  // Initialize the counting arrays
   for (int i=0; i < size; i++) {
     sec[i] = 0;
   }
   pthread_mutex_unlock(&lock_sec);
 
+  // Prevent other threads from clobbering this value
   pthread_mutex_lock(&lock_count);
   t1 = t2 = 0;
   pthread_mutex_unlock(&lock_count);
@@ -475,13 +516,20 @@ int geigerSetup(void) {
   // Configure wiringPi to detect pulses with a falling
   // edge on the Geiger pin
   wiringPiISR(geigerPin, INT_EDGE_BOTH, &countInterrupt);
-  pullUpDnControl(geigerPin, PUD_OFF);  // Pull up/down resistors off
-  t1 = t2 = 0.0;
 
+  // Pull up/down resistors off for this pin
+  pullUpDnControl(geigerPin, PUD_OFF);
+
+  // Initialize the mutexes
   pthread_mutex_init(&lock_sec, NULL);
   pthread_mutex_init(&lock_hv, NULL);
   pthread_mutex_init(&lock_count, NULL);
   pthread_mutex_init(&lock_led, NULL);
+
+  // Prevent other threads from clobbering this value
+  pthread_mutex_lock(&lock_count);
+  t1 = t2 = 0.0;
+  pthread_mutex_unlock(&lock_count);
 
   return 0;
 }
@@ -499,10 +547,12 @@ void geigerStart() {
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-  pthread_t led_id;             // Set up the LED blink thread
+  // Set up the LED blink thread
+  pthread_t led_id;
   pthread_create(&led_id, &attr, blinkLED, NULL);
 
-  pthread_attr_destroy(&attr);  // Clean up
+  // Clean up thread attributes
+  pthread_attr_destroy(&attr);
 }
 
 /*
@@ -515,6 +565,7 @@ void geigerStop() {
   HVOff();                      // Make sure HV is off
   LEDOff();                     // Make sure the LED is off
 
+  // Clean up the mutexes
   pthread_mutex_destroy(&lock_sec);
   pthread_mutex_destroy(&lock_hv);
   pthread_mutex_destroy(&lock_count);

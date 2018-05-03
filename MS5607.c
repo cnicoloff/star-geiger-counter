@@ -47,9 +47,9 @@ static const char CMD_ADC_4096 = 0x08;     // ADC OSR=4096
 static const char CMD_PROM_RD = 0xA0;      // Prom read command
 
 static const int CHANNEL = 0;              // SPI channel
-static volatile unsigned int C[8] = {0};   // Altimeter calibration coefficients
 
-static volatile float QFF = 1009;          // QFF pressure at sea level, mbar
+volatile unsigned int C[8];                // Altimeter calibration coefficients
+volatile float QFF;                        // QFF pressure at sea level, mbar
 
 /*
  * altimeterInit(): Initialize the altimeter
@@ -83,6 +83,7 @@ int altimeterReset(void) {
 
 void getAltimeterCalibration(int C_copy[]) {
 
+  // Copy the coefficients into the array
   for (int i=0; i < 8; i++) {
     C_copy[i] = C[i];
   }
@@ -116,10 +117,10 @@ unsigned int readAltimeterCalibration(char coeffNum) {
   buffer[1] = CMD_ADC_READ;                 // Get next char
   buffer[2] = CMD_ADC_READ;                 // Get next char
 
-  SPIDataRW(CHANNEL, buffer, 3);      // Send and receive
+  SPIDataRW(CHANNEL, buffer, 3);            // Send and receive
 
-  rC = 256 * (int)buffer[1];              // Convert the high bits
-  rC = rC + (int)buffer[2];               // Add the low bits
+  rC = 256 * (int)buffer[1];                // Convert the high bits
+  rC = rC + (int)buffer[2];                 // Add the low bits
 
   return rC;
 }
@@ -185,7 +186,7 @@ unsigned char altimeterCRC4(unsigned int n_prom[]) {
   unsigned int crc_read;  // original value of the crc
   unsigned char n_bit;
 
-  n_rem = 0x00;
+  n_rem = 0x00;                       // reminder is zero
   crc_read = n_prom[7];               // save read CRC
   n_prom[7] = (0xFF00 & (n_prom[7])); // CRC byte is replaced by 0
 
@@ -208,14 +209,17 @@ unsigned char altimeterCRC4(unsigned int n_prom[]) {
     }
   }
 
-  n_rem = (0x000F & (n_rem >> 12)); // final 4-bit reminder is CRC code
-  n_prom[7] = crc_read;             // restore the crc_read to its original place
+  n_rem = (0x000F & (n_rem >> 12));   // final 4-bit reminder is CRC code
+  n_prom[7] = crc_read;               // restore the crc_read to its original place
 
   return (n_rem ^ 0x00);
 }
 
 /*
  * readPUncompensated: Read the raw pressure data from the altimeter
+ *
+ *                     Read the manufacturer's data sheet for a better
+ *                     understanding of CMD_ADC_256 - CMD_ADC_4096
  *****************************************************************************
  */
 
@@ -225,6 +229,9 @@ unsigned long readPUncompensated(void) {
 
 /*
  * readTUncompensated: Read the raw temperature data from the altimeter
+ *
+ *                     Read the manufacturer's data sheet for a better
+ *                     understanding of CMD_ADC_256 - CMD_ADC_4096
  *****************************************************************************
  */
 
@@ -235,6 +242,8 @@ unsigned long readTUncompensated(void) {
 /*
  * calcDT: Calculate the difference between the actual and the reference
  *         temperature
+ *
+ *         This calculation comes from the manufacturer's data sheet
  *****************************************************************************
  */
 
@@ -244,6 +253,8 @@ double calcDT(unsigned long T) {
 
 /*
  * calcOffset: Calculate the offset at the actual temperature
+ *
+ *             This calculation comes from the manufacturer's data sheet
  *****************************************************************************
  */
 
@@ -254,6 +265,8 @@ double calcOffset(unsigned long T) {
 
 /*
  * calcSens: Calculate the sensitivity at the actual temperature
+ *
+ *           This calculation comes from the manufacturer's data sheet
  *****************************************************************************
  */
 
@@ -265,6 +278,8 @@ double calcSens(unsigned long T) {
 /*
  * calcFirstOrderP: Calculate the first order pressure using the MS5607 1st
  *                  order algorithm.
+ *
+ *                  This calculation comes from the manufacturer's data sheet
  *****************************************************************************
  */
 
@@ -285,6 +300,8 @@ double calcFirstOrderP(unsigned long T, unsigned long P) {
 /*
  * calcFirstOrderT: Calculate the first order temperature using the MS5607 1st
  *                  order algorithm.
+ *
+ *                  This calculation comes from the manufacturer's data sheet
  *****************************************************************************
  */
 
@@ -303,13 +320,15 @@ double calcFirstOrderT(unsigned long T) {
 /*
  * calcSecondOrderP: Calculate the second order pressure using the MS5607 2nd
  *                   order non-linear algorithm.
+ *
+ *                   This calculation comes from the manufacturer's data sheet
  *****************************************************************************
  */
 
 double calcSecondOrderP(unsigned long T, unsigned long P) {
   double Pcomp = 0.0;                 // compensated pressure value
   double temp = calcFirstOrderT(T);   // first order temperature value
-  double temp2 = 0.0;                 // ??
+  double temp2 = 0.0;                 // temperature adjustment
   double dT;                          // difference between actual and measured temperature
   double offset, offset2 = 0.0;       // offset at actual temperature
   double sens, sens2 = 0.0;           // sensitivity at actual temperature
@@ -350,7 +369,8 @@ double calcSecondOrderP(unsigned long T, unsigned long P) {
 /*
  * calcAltitude: Convert pressure and temperature to altitude
  *
- * Formula from: https://www.researchgate.net/file.PostFileLoader.html?id=5409cac4d5a3f2e81f8b4568&assetKey=AS%3A273593643012096%401442241215893
+ * Formula from: https://www.researchgate.net/file.PostFileLoader.html?
+ *   id=5409cac4d5a3f2e81f8b4568&assetKey=AS%3A273593643012096%401442241215893
  *****************************************************************************
  */
 
@@ -368,7 +388,8 @@ double calcSecondOrderP(unsigned long T, unsigned long P) {
  *         height:    the height of STAR above the ground
  *
  * Calculations: http://www.metpod.co.uk/metcalcs/pressure/
- * Standard values: http://www-mdp.eng.cam.ac.uk/web/library/enginfo/aerothermal_dvd_only/aero/atmos/atmos.html
+ * Standard values: http://www-mdp.eng.cam.ac.uk/web/library/enginfo/
+ *                    aerothermal_dvd_only/aero/atmos/atmos.html
  *****************************************************************************
  */
 
@@ -413,9 +434,12 @@ void setQFF(float latitude, float elevation, float height) {
  */
 
 int altimeterSetup(void) {
-  // Initialize the altimeter
+
+  // Altimeter initialization failed
   if (altimeterInit() < 0)
     return -1;
+
+  // Altimeter initialization succeeded
   else {
     altimeterReset();              // Reset after power on
 
@@ -426,4 +450,3 @@ int altimeterSetup(void) {
   }
   return 0;
 }
-

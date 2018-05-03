@@ -50,7 +50,8 @@ volatile bool LEDisOn;          // Is LED on?
 volatile bool keepRunning;      // Signals when to exit
 volatile bool HVisOn;           // Is HV on?
 
-pthread_mutex_t lock;           // Prevent a race condition involving secNum read/write
+pthread_mutex_t lock_sec;       // Prevent a race condition involving secNum read/write
+pthread_mutex_t lock_hv;        // Prevent a race condition involving secNum read/write
 
 static int size = 60;  // Array size
 
@@ -74,11 +75,11 @@ static int flashTime = 10;
 int getSecNum(void) {
   int ret;
 
-  pthread_mutex_lock(&lock);
+  pthread_mutex_lock(&lock_sec);
   DEBUG_PRINT("    getSecNum()\n");
   DEBUG_PRINT("        secNum: %d\n", secNum);
   ret = secNum;
-  pthread_mutex_unlock(&lock);
+  pthread_mutex_unlock(&lock_sec);
 
   return ret;
 }
@@ -94,7 +95,7 @@ void setSecNum(unsigned long seconds) {
 
   int numSecs = 0;
 
-  pthread_mutex_lock(&lock);
+  pthread_mutex_lock(&lock_sec);
 
   DEBUG_PRINT("    setSecNum(%ld)\n", seconds);
   DEBUG_PRINT("        seconds: %ld\n", seconds);
@@ -110,7 +111,7 @@ void setSecNum(unsigned long seconds) {
   secNum = numSecs;
   DEBUG_PRINT("        secNum: %d\n", secNum);
 
-  pthread_mutex_unlock(&lock);
+  pthread_mutex_unlock(&lock_sec);
 }
 
 /*
@@ -279,7 +280,10 @@ float cpmTouSv(int numSecs) {
 void HVOn (void) {
   if (!HVisOn) {
     digitalWrite(gatePin, HIGH);  // Turn on the MOSFET gate pin
+
+    pthread_mutex_lock(&lock_hv);
     HVisOn = true;                // HV is now on
+    pthread_mutex_unlock(&lock_hv);
   }
 }
 
@@ -291,7 +295,9 @@ void HVOn (void) {
 void HVOff (void) {
   if (HVisOn) {
     digitalWrite(gatePin, LOW);   // Turn off the MOSFET gate pin
+    pthread_mutex_lock(&lock_hv);
     HVisOn = false;               // HV is now off
+    pthread_mutex_unlock(&lock_hv);
   }
 }
 
@@ -301,7 +307,13 @@ void HVOff (void) {
  */
 
 bool getHVOn (void) {
-  return HVisOn;
+  bool ret;
+
+  pthread_mutex_lock(&lock_hv);
+  ret = HVisOn;
+  pthread_mutex_unlock(&lock_hv);
+
+  return ret;
 }
 
 /*
@@ -332,6 +344,7 @@ int geigerSetup(void) {
   wiringPiSetup();
 
   HVisOn = false;            // HV is off by default
+
   pinMode(gatePin, OUTPUT);  // Set up MOSFET gate pin
 
   LEDTime = 0;               // Initialize the LED
@@ -343,7 +356,8 @@ int geigerSetup(void) {
   wiringPiISR(geigerPin, INT_EDGE_FALLING, &countInterrupt);
   pullUpDnControl(geigerPin, PUD_OFF);  // Pull up/down resistors off
 
-  pthread_mutex_init(&lock, NULL);
+  pthread_mutex_init(&lock_sec, NULL);
+  pthread_mutex_init(&lock_hv, NULL);
 
   return 0;
 }
@@ -375,5 +389,6 @@ void geigerStart() {
 void geigerStop() {
   keepRunning = false;          // Stop running threads
   HVOff();                      // Make sure HV is off
-  pthread_mutex_destroy(&lock);
+  pthread_mutex_destroy(&lock_sec);
+  pthread_mutex_destroy(&lock_hv);
 }

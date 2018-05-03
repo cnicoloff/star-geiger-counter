@@ -115,7 +115,7 @@ int main (void)
   // Define the output file
   FILE *csvf;
   char csvfname[] = "counts.txt";
-  
+
   // Attempt to open our output file, write+append
   csvf = fopen(csvfname, "aw");
 
@@ -132,7 +132,7 @@ int main (void)
   // Define the log file
   FILE *errf;
   char errfname[] = "error.txt";
-  
+
   // Attempt to open our log file, write+append
   errf = fopen(errfname, "aw");
 
@@ -172,8 +172,8 @@ int main (void)
   fprintf(errf, "%s setQFF(42.29, 46, 1): %f\n", getTimeStamp(), getQFF());
   DEBUG2_PRINT("%s setQFF(42.29, 46, 1): %f\n", getTimeStamp(), getQFF());
 
-  // Sleep 1s so we don't power everything on at once
-  sleep(1);
+  // Sleep 2s so we don't power everything on at once
+  sleep(2);
 
   // Setup the Geiger circuit
   geigerSetup();
@@ -218,9 +218,9 @@ int main (void)
 
     // Every so often, print the header to screen
     if (curSec % 20 == 0) {
-      DEBUG_PRINT("-----+-----------+------+---------+--------+---------+----------+----------+----------\n");
-      DEBUG_PRINT(" Buf |   Elapsed |    N |       T |     T1 |       P |       P1 |       P2 |        H\n");
-      DEBUG_PRINT("-----+-----------+------+---------+--------+---------+----------+----------+----------\n");
+      printf("-----+-----------+------+---------+--------+---------+----------+----------+----------\n");
+      printf(" Buf |   Elapsed |    N |       T |     T1 |       P |       P1 |       P2 |        H\n");
+      printf("-----+-----------+------+---------+--------+---------+----------+----------+----------\n");
     }
 
     // Put data into our struct
@@ -255,6 +255,8 @@ int main (void)
         HVOn();                    // Turn the Geiger tube on
         fprintf(errf, "%s HVOn()\n", getTimeStamp());
         DEBUG2_PRINT("%s HVOn()\n", getTimeStamp());
+
+        doPost = false;
       }
       // If we're below our threshold altitude and we haven't done a POST, do a POST
       else if ((doPost) && (data[bufSec].altitude < (geigerAlt - deadBand))) {
@@ -285,7 +287,7 @@ int main (void)
     }
 
     // Write some output to the screen
-    DEBUG_PRINT("  %2d | %9.3f | %4d | %7ld | %6.2f | %7ld | %8.3f | %8.3f | %8.2f\n", getSecNum(), data[bufSec].elapsed, data[bufSec].counts, data[bufSec].T, data[bufSec].T1, data[bufSec].P, data[bufSec].P1, data[bufSec].P2, data[bufSec].altitude);
+    printf("  %2d | %9.3f | %4d | %7ld | %6.2f | %7ld | %8.3f | %8.3f | %8.2f\n", getSecNum(), data[bufSec].elapsed, data[bufSec].counts, data[bufSec].T, data[bufSec].T1, data[bufSec].P, data[bufSec].P1, data[bufSec].P2, data[bufSec].altitude);
 
     waitNextSec();              // Sleep until next second
   }
@@ -313,7 +315,7 @@ int main (void)
   fprintf(errf, "%s Closing log file.\n", getTimeStamp());
   fprintf(errf, "%s ****************************************\n", getTimeStamp());
   result = fclose(errf);
-  
+
   if (result != 0) {
     printf("Error closing log file!\n");
   }

@@ -106,7 +106,6 @@ void waitNanoSec(long interval) {
 
 void waitNextSec(void) {
   struct timespec tim, tim2, rem;
-  long wait_ns, wait_sec;
 
   // Get the current time
   clock_gettime(CLOCK_REALTIME, &tim);

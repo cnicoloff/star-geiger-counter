@@ -125,9 +125,14 @@ int main (int argc, char *argv[]) {
   act.sa_handler = breakHandler;
   sigaction(SIGINT, &act, NULL);
 
+  // Initialize random number generator
+  srand(time(NULL));
+  int r = rand();
+
   // Define the output file
   FILE *csvf;
-  char csvfname[] = "counts.txt";
+  char csvfname[100];
+  sprintf(csvfname, "counts_%s_%d.txt", getTimeStamp(), r);
 
   // Attempt to open our output file, write+append
   csvf = fopen(csvfname, "aw");
@@ -144,7 +149,8 @@ int main (int argc, char *argv[]) {
 
   // Define the log file
   FILE *errf;
-  char errfname[] = "error.txt";
+  char errfname[100];
+  sprintf(errfname, "error_%s_%d.txt", getTimeStamp(), r);
 
   // Attempt to open our log file, write+append
   errf = fopen(errfname, "aw");

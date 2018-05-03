@@ -64,7 +64,8 @@ volatile int deadCounts[60];
 
 pthread_mutex_t lock_sec;       // Prevent a race condition involving secNum read/write
 pthread_mutex_t lock_hv;        // Prevent a race condition involving HVisOn read/write
-pthread_mutex_t lock_count;     // Prevent a race condition involving edgeLow read/write
+pthread_mutex_t lock_count;     // Prevent a race condition involving t1/t2 read/write
+pthread_mutex_t lock_led;       // Prevent a race condition involving LEDTime read/write
 
 // Initialize the GPIO pins.  Note that these are not the BCM GPIO pin
 // numbers or the physical header pin numbers!  Conversion table is at
@@ -74,7 +75,7 @@ static int geigerPin = 5;
 static int gatePin = 6;
 
 // How long to flash the LED when a count is recorded, in milliseconds
-static int flashTime = 5;
+static int flashTime = 2;
 
 
 
@@ -106,8 +107,8 @@ void setSecNum(unsigned long seconds) {
 
   int numSecs = 0;
 
-  pthread_mutex_lock(&lock_sec);
   pthread_mutex_lock(&lock_count);
+  pthread_mutex_lock(&lock_sec);
 
   DEBUG2_PRINT("    setSecNum(%ld)\n", seconds);
   DEBUG2_PRINT("        seconds: %ld\n", seconds);
@@ -148,7 +149,9 @@ void countInterrupt(void) {
     sec[getSecNum()]++;
 
     // Tell the LED thread to light up
+    pthread_mutex_lock(&lock_led);
     LEDTime += flashTime;
+    pthread_mutex_unlock(&lock_led);
 
     // Set the time that the falling pulse began
     t1 = t2 = tim1.tv_sec * 1000000000 + tim1.tv_nsec;
@@ -201,10 +204,14 @@ void countInterrupt(void) {
  *****************************************************************************
  */
 
-void LEDOn (void) {
+void LEDOn(void) {
+
+  pthread_mutex_lock(&lock_led);
 
   digitalWrite(ledPin, HIGH); // Turn on the LED
   LEDisOn = true;             // The LED is now on
+
+  pthread_mutex_unlock(&lock_led);
 }
 
 /*
@@ -212,10 +219,15 @@ void LEDOn (void) {
  *****************************************************************************
  */
 
-void LEDOff (void) {
+void LEDOff(void) {
+
+  pthread_mutex_lock(&lock_led);
 
   digitalWrite(ledPin, LOW); // Turn off the LED
   LEDisOn = false;           // The LED is now off
+  LEDTime = 0;               // Set remaining blink time to zero
+
+  pthread_mutex_unlock(&lock_led);
 }
 
 /*
@@ -240,19 +252,24 @@ void *blinkLED (void *vargp) {
   while (keepRunning) {
 
     // If the LED is supposed to be lit
-    if ((LEDTime > 0) && (!LEDisOn)) {
-      LEDOn();                    // Turn on the LED
+    while (LEDTime > 0) {
+      if (!LEDisOn) {
+        LEDOn();                  // Turn on the LED
+      }
+      pthread_mutex_lock(&lock_led);
       LEDTime -= flashTime;       // Subtract the time it will be lit
+      pthread_mutex_unlock(&lock_led);
+
       nanosleep(&tim, NULL);      // Sleep for flashTime ms
     }
+
     // If the LED is not supposed to be lit
-    else if (LEDisOn) {
+    if (LEDisOn) {
       LEDOff();                   // Turn off the LED
     }
+
     // Prevent this thread from using 100% CPU
-    else {
-      nanosleep(&tim2, NULL);
-    }
+    nanosleep(&tim2, NULL);
   }
 
   // Turn off the LED before exiting the thread
@@ -374,10 +391,11 @@ float cpmTouSv(int numSecs) {
 
 void HVOn (void) {
   if (!HVisOn) {
-    digitalWrite(gatePin, HIGH);  // Turn on the MOSFET gate pin
-
     pthread_mutex_lock(&lock_hv);
+
+    digitalWrite(gatePin, HIGH);  // Turn on the MOSFET gate pin
     HVisOn = true;                // HV is now on
+
     pthread_mutex_unlock(&lock_hv);
   }
 }
@@ -389,9 +407,11 @@ void HVOn (void) {
 
 void HVOff (void) {
   if (HVisOn) {
-    digitalWrite(gatePin, LOW);   // Turn off the MOSFET gate pin
     pthread_mutex_lock(&lock_hv);
+
+    digitalWrite(gatePin, LOW);   // Turn off the MOSFET gate pin
     HVisOn = false;               // HV is now off
+
     pthread_mutex_unlock(&lock_hv);
   }
 }
@@ -422,11 +442,15 @@ int geigerReset(void) {
   setSecNum(0);
 
   // Initialize the counting arrays
+  pthread_mutex_lock(&lock_sec);
   for (int i=0; i < size; i++) {
     sec[i] = 0;
   }
+  pthread_mutex_unlock(&lock_sec);
 
+  pthread_mutex_lock(&lock_count);
   t1 = t2 = 0;
+  pthread_mutex_unlock(&lock_count);
 
   return 0;
 }
@@ -457,6 +481,7 @@ int geigerSetup(void) {
   pthread_mutex_init(&lock_sec, NULL);
   pthread_mutex_init(&lock_hv, NULL);
   pthread_mutex_init(&lock_count, NULL);
+  pthread_mutex_init(&lock_led, NULL);
 
   return 0;
 }
@@ -488,7 +513,10 @@ void geigerStart() {
 void geigerStop() {
   keepRunning = false;          // Stop running threads
   HVOff();                      // Make sure HV is off
+  LEDOff();                     // Make sure the LED is off
+
   pthread_mutex_destroy(&lock_sec);
   pthread_mutex_destroy(&lock_hv);
   pthread_mutex_destroy(&lock_count);
+  pthread_mutex_destroy(&lock_led);
 }

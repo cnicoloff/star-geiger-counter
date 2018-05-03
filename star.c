@@ -28,7 +28,6 @@
 #include <unistd.h>
 #include <time.h>
 #include <math.h>
-#include <pthread.h>
 #include "star_common.h"
 #include "geiger.h"
 #include "MS5607.h"
@@ -67,11 +66,12 @@ volatile bool keepRunning;
 
 // FIXME: Change these before launch!
 // Minimum altitude before Geiger circuit turns on
-static int geigerAlt = 40;
+static int geigerAlt = 100;
 
 // The dead band keeps small altitude fluctuations from
 // turning the Geiger circuit on and off quickly
-static int deadBand = 10;
+static int deadBand = 20;
+
 
 /*
  * breakHandler: Captures CTRL-C so we can shut down cleanly.
@@ -265,16 +265,31 @@ int main (void)
         fprintf(csvf, "Elapsed, Counts, T (Raw), T1 (C), P (Raw), P1 (mbar), P2 (mbar), Altitude (m), Dead Time (s), Dead Time Counts\n");
 
         HVOn();                    // Turn the Geiger tube on
-        fprintf(errf, "%s HVOn()\n", getTimeStamp());
-        DEBUG2_PRINT("%s HVOn()\n", getTimeStamp());
+        fprintf(errf, "%s HVOn(), altitude = %f\n", getTimeStamp(), data[bufSec].altitude);
+        DEBUG2_PRINT("%s HVOn(), altitude = %f\n", getTimeStamp(), data[bufSec].altitude);
 
         doPost = false;
       }
       // If we're below our threshold altitude and we haven't done a POST, do a POST
       else if ((doPost) && (data[bufSec].altitude < (geigerAlt - deadBand))) {
-        fprintf(errf, "%s POST()\n", getTimeStamp());
-        DEBUG2_PRINT("%s POST()\n", getTimeStamp());
+        fprintf(errf, "%s entering POST(), altitude = %f\n", getTimeStamp(), data[bufSec].altitude);
+        DEBUG2_PRINT("%s entering POST(), altitude = %f\n", getTimeStamp(), data[bufSec].altitude);
+
+        // Start the POST thread
+        //pthread_create(&post_id, &attr, post, NULL);
+        HVOn();
+        for (int i = 0; i < 30; i++) {
+          if (keepRunning) {
+            waitNextSec();
+          }
+        }
+        HVOff();
+        start_time = getTimeMS();     // Save the start time
+        curSec = 0;                   // Start at zero seconds
+        geigerReset();                // Reset the Geiger circuit
         doPost = false;
+        fprintf(errf, "%s exiting POST()\n", getTimeStamp());
+        DEBUG2_PRINT("%s exiting POST()\n", getTimeStamp());
       }
     }
 
@@ -334,3 +349,11 @@ int main (void)
 
   return EXIT_SUCCESS;
 }
+
+
+
+
+
+
+
+

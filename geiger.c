@@ -75,7 +75,7 @@ static int geigerPin = 5;
 static int gatePin = 6;
 
 // How long to flash the LED when a count is recorded, in milliseconds
-static int flashTime = 2;
+static int flashTime = 5;
 
 
 
@@ -123,7 +123,11 @@ void setSecNum(unsigned long seconds) {
     sec[numSecs] = 0;
     deadTime[numSecs] = 0;
     deadCounts[numSecs] = 0;
-    LEDTime = 0;
+    // This is to prevent huge values of LEDTime when
+    // counting at high rates
+    if (LEDTime) {
+      LEDTime = flashTime;
+    }
   }
   secNum = numSecs;
   DEBUG2_PRINT("        secNum: %d\n", secNum);
@@ -185,11 +189,6 @@ void countInterrupt(void) {
 
         // Reset and wait for a falling edge
         t1 = 0;
-
-        // Prevent other threads from clobbering this value
-        pthread_mutex_lock(&lock_led);
-        LEDTime = 0;              // Tell the LED to turn off
-        pthread_mutex_unlock(&lock_led);
       }
 
       // The time distance wasn't realistic

@@ -36,26 +36,27 @@
 #include <wiringPi.h>
 #include "star_common.h"
 
-static int size = 60;             // Array size
-static volatile int secNum;       // Which index in the seconds array
-static volatile int sec[60]={0};  // Array of collected counts per second
+#ifdef DEBUG
+  #define DEBUG_PRINT(...) do { fprintf(stderr, __VA_ARGS__); } while(false)
+#else
+  #define DEBUG_PRINT(...) do { } while (false)
+#endif
 
-/*
-static volatile int minNum;       // Which index of the minutes array
-static volatile int min[60]={0};  // Array of collected counts per minute
-static volatile int hourNum;      // Which index of the hours array
-static volatile int hour[60]={0}; // Array of collected counts per hour
-static volatile int elapsed;      // How many seconds have elapsed
-*/
+int secNum;            // Which index in the seconds array
+int sec[60];           // Array of collected counts per second
 
-static volatile int LEDTime;      // How much time is left to light LED
-static volatile bool LEDisOn;     // Is LED on?
-static volatile bool keepRunning; // Signals when to exit
-static volatile bool turnHVOn;    // Signals when to turn the HV on
-static volatile bool HVisOn;      // Is HV on?
+int LEDTime;           // How much time is left to light LED
+bool LEDisOn;          // Is LED on?
+bool keepRunning;      // Signals when to exit
+bool turnHVOn;         // Signals when to turn the HV on
+bool HVisOn;           // Is HV on?
 
-// Initialize the GPIO pins.  Note that these are not the BCM GPIO pin 
-// numbers or the physical header pin numbers!  Conversion table is at 
+pthread_mutex_t lock;
+
+static int size = 60;  // Array size
+
+// Initialize the GPIO pins.  Note that these are not the BCM GPIO pin
+// numbers or the physical header pin numbers!  Conversion table is at
 // http://wiringpi.com/pins/
 static int ledPin = 4;
 static int geigerPin = 5;
@@ -65,14 +66,63 @@ static int gatePin = 6;
 static int flashTime = 10;
 
 
+
+/*
+ * getSecNum: Gets the current Geiger counting second.
+ *****************************************************************************
+ */
+
+int getSecNum(void) {
+  int ret;
+
+  pthread_mutex_lock(&lock);
+  DEBUG_PRINT("    getSecNum()\n");
+  DEBUG_PRINT("        secNum: %d\n", secNum);
+  ret = secNum;
+  pthread_mutex_unlock(&lock);
+
+  return ret;
+}
+
+/*
+ * setSecNum: Sets the current Geiger counting second
+ *
+ *            seconds is the elapsed seconds since start
+ *****************************************************************************
+ */
+
+void setSecNum(unsigned long seconds) {
+
+  int numSecs = 0;
+
+  pthread_mutex_lock(&lock);
+
+  DEBUG_PRINT("    setSecNum(%ld)\n", seconds);
+  DEBUG_PRINT("        seconds: %ld\n", seconds);
+
+  // We only care about the seconds buffer
+  numSecs = seconds % size;
+  DEBUG_PRINT("        numSecs: %d\n", numSecs);
+
+  // If it's not the same second, initialize the array element
+  if (numSecs != secNum) {
+    sec[numSecs] = 0;
+  }
+  secNum = numSecs;
+  DEBUG_PRINT("        secNum: %d\n", secNum);
+
+  pthread_mutex_unlock(&lock);
+}
+
 /*
  * countInterrupt: Runs when a count is detected.
  *****************************************************************************
  */
 
 void countInterrupt(void) {
+  DEBUG_PRINT("countInterrupt()\n");
   // Increment the counter
-  sec[secNum]++;
+  sec[getSecNum()]++;
 
   // Tell the LED thread to light up
   LEDTime += flashTime;
@@ -144,15 +194,6 @@ void *blinkLED (void *vargp) {
 }
 
 /*
- * getSecNum:
- *****************************************************************************
- */
-
-int getSecNum(void) {
-  return secNum;
-}
-
-/*
  * getIndex: Get a particular index from the circular buffer.
  *****************************************************************************
  */
@@ -177,12 +218,13 @@ int getIndex(int numIndex) {
  */
 
 int sumCounts(int numSecs) {
+  DEBUG_PRINT("sumCounts(%d)\n", numSecs);
 
   int total = 0;
 
   // Sum seconds
   for (int i=0; i < numSecs; i++) {
-    total += sec[getIndex(secNum - i)];
+    total += sec[getIndex(getSecNum() - i)];
   }
 
   return total;
@@ -264,34 +306,6 @@ bool getHVOn (void) {
 }
 
 /*
- * geigerSetTime: Sets the Geiger counting variables
- *
- *                seconds is the elapsed seconds since start
- *****************************************************************************
- */
-
-void geigerSetTime(unsigned long seconds) {
-
-  printf("seconds: %ld\n", seconds);
-
-  //int numHours = (seconds / 3600);                                      // Seconds to hours
-  //int numMins = ((seconds - (numHours * 3600)) / 60);                   // Seconds to minutes
-  //int numSecs = (seconds - (numMins * 60) - (numHours * 3600));         // Remaining seconds
-
-  // We only care about the seconds buffer
-  int numSecs = seconds % size;
-
-  // If it's not the same second, initialize the array element
-  if (numSecs != secNum) {
-    sec[numSecs] = 0;
-  }
-
-  secNum = numSecs;
-  printf("secNum: %d\n", secNum);
-}
-
-
-/*
  * geigerReset: Resets the Geiger counting variables.
  *****************************************************************************
  */
@@ -299,7 +313,7 @@ void geigerSetTime(unsigned long seconds) {
 int geigerReset(void) {
 
   // Initialize counting variables
-  geigerSetTime(0);
+  setSecNum(0);
 
   // Initialize the counting arrays
   for (int i=0; i < size; i++) {
@@ -318,11 +332,8 @@ int geigerSetup(void) {
 
   wiringPiSetup();
 
-  //turnHVOn = false;          // Do not turn HV on at this time
   HVisOn = false;            // HV is off by default
   pinMode(gatePin, OUTPUT);  // Set up MOSFET gate pin
-  //pthread_t HV_id;           // Set up the HV control thread
-  //pthread_create(&HV_id, &attr, HVControl, NULL);
 
   LEDTime = 0;               // Initialize the LED
   LEDisOn = false;           // LED is off by default
@@ -333,7 +344,7 @@ int geigerSetup(void) {
   wiringPiISR(geigerPin, INT_EDGE_FALLING, &countInterrupt);
   pullUpDnControl(geigerPin, PUD_OFF);  // Pull up/down resistors off
 
-  geigerReset();             // Reset all counting variables
+  pthread_mutex_init(&lock, NULL);
 
   return 0;
 }
@@ -354,8 +365,6 @@ void geigerStart() {
   pthread_t led_id;             // Set up the LED blink thread
   pthread_create(&led_id, &attr, blinkLED, NULL);
 
-  geigerReset();                // Reset all counting variables
-
   pthread_attr_destroy(&attr);  // Clean up
 }
 
@@ -367,4 +376,5 @@ void geigerStart() {
 void geigerStop() {
   keepRunning = false;          // Stop running threads
   HVOff();                      // Make sure HV is off
+  pthread_mutex_destroy(&lock);
 }

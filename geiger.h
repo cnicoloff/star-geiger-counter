@@ -32,10 +32,8 @@ void LEDOff (void);
 void *blinkLED (void *vargp);
 
 // Count routines
-void waitOneSec(void);
 int getSecNum(void);
-//int getMinNum(void);
-//int getHourNum(void);
+void setSecNum(unsigned long seconds);
 int getIndex(int numIndex);
 int sumCounts(int numSecs);
 float averageCounts(int numSecs);
@@ -48,7 +46,6 @@ void HVOff(void);
 bool getHVOn(void);
 
 // Setup routines
-void geigerSetTime(unsigned long seconds);
 int geigerReset(void);
 int geigerSetup(void);
 void geigerStart(void);

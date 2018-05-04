@@ -25,7 +25,7 @@
 #define STAR_COMMON_H
 
 unsigned long long getTimeNS(void);
-unsigned long getTimeMS(void);
+unsigned long long getTimeMS(void);
 const char * getTimeStamp(void);
 void waitNanoSec(long interval);
 void waitNextSec(void);

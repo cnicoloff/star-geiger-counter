@@ -33,7 +33,7 @@
  *****************************************************************************
  */
 
-unsigned long getTimeMS(void) {
+unsigned long long getTimeMS(void) {
   struct timespec tim;
 
   clock_gettime(CLOCK_MONOTONIC, &tim);

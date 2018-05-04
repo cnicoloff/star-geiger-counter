@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-//#include <linux/spi/spidev.h>
 #include "PiSPI.h"
 
 // Definitions to support MS5607 altimeter
@@ -77,21 +76,36 @@ int altimeterReset(void) {
 }
 
 /*
- * altimeterCalibration(): Get the altimeter's factory calibration 
- *                         coefficient (0..5)
- *                         0: Pressure sensitivity
- *                         1: Pressure offset
- *                         2: Temperature coefficient of pressure sensitivity
- *                         3: Temperature coefficient of pressure offset
- *                         4: Reference temperature
- *                         5: Temperature coefficient of the temperature
- *
- *                         These values are 16 bit, which is why they are
- *                         acquired in two parts.
+ * getAltimeterCalibration(): Get the altimeter's factory calibration
+ *                            coefficients (0..5)
  *****************************************************************************
  */
 
-unsigned int altimeterCalibration(char coeffNum) {
+void getAltimeterCalibration(int C_copy[]) {
+
+  for (int i=0; i < 8; i++) {
+    C_copy[i] = C[i];
+  }
+}
+
+/*
+ * readAltimeterCalibration(): Get the altimeter's factory calibration
+ *                             coefficient (0..5)
+ *                             0: Pressure sensitivity
+ *                             1: Pressure offset
+ *                             2: Temperature coefficient of pressure
+ *                                sensitivity
+ *                             3: Temperature coefficient of pressure
+ *                                offset
+ *                             4: Reference temperature
+ *                             5: Temperature coefficient of the temperature
+ *
+ *                             These values are 16 bit, which is why they are
+ *                             acquired in two parts.
+ *****************************************************************************
+ */
+
+unsigned int readAltimeterCalibration(char coeffNum) {
   unsigned char buffer[5] = {0};
   unsigned int rC = 0;
 
@@ -387,7 +401,7 @@ void setQFF(float latitude, float elevation, float height) {
  * getQFF: Get the QFF value
  *****************************************************************************
  */
- 
+
  float getQFF() {
   return QFF;
 }
@@ -404,15 +418,11 @@ int altimeterSetup(void) {
     return -1;
   else {
     altimeterReset();              // Reset after power on
-    
-    printf("MS5607 Calibration: ");
 
     // Get altimeter factory calibration coefficients
     for (int i=0; i < 8; i++) {
-      C[i] = altimeterCalibration(i);
-      printf("%d = %d ", i, C[i]);
+      C[i] = readAltimeterCalibration(i);
     }
-    printf("\n");
   }
   return 0;
 }

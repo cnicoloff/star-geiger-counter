@@ -26,7 +26,7 @@
  * along with STAR.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************
  */
- 
+
 #ifndef MS5607_H
 #define MS5607_H
 
@@ -36,7 +36,8 @@ int altimeterInit(void);
 void altimeterReset(void);
 
 // Altimeter communications
-unsigned int altimeterCalibration(char CNum);
+void getAltimeterCalibration(int C_copy[]);
+unsigned int readAltimeterCalibration(char CNum);
 unsigned long altimeterADC(char cmd);
 unsigned char altimeterCRC4(unsigned int n_prom[]);
 

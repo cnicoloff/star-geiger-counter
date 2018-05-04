@@ -73,8 +73,6 @@ static int flashTime = 10;
 void countInterrupt(void) {
   // Increment the counter
   sec[secNum]++;
-//  min[minNum]++;
-//  hour[hourNum]++;
 
   // Tell the LED thread to light up
   LEDTime += flashTime;
@@ -146,31 +144,13 @@ void *blinkLED (void *vargp) {
 }
 
 /*
- * getSecNum: 
+ * getSecNum:
  *****************************************************************************
  */
 
 int getSecNum(void) {
   return secNum;
 }
-
-/*
- * getMinNum: 
- *****************************************************************************
-
-int getMinNum(void) {
-  return minNum;
-}
- */
-
-/*
- * getHourNum: 
- *****************************************************************************
-
-int getHourNum(void) {
-  return hourNum;
-}
- */
 
 /*
  * getIndex: Get a particular index from the circular buffer.
@@ -198,22 +178,7 @@ int getIndex(int numIndex) {
 
 int sumCounts(int numSecs) {
 
-  // FIXME: This function misbehaves at T=numSecs!
-
-  int total = 0;                                                    // Total counts
-  int numHours = (numSecs / 3600) % size;                           // Seconds to hours
-  int numMins = ((numSecs - (numHours * 3600)) / 60) % size;        // Seconds to minutes
-  numSecs = (numSecs - (numMins * 60) - (numHours * 3600)) % size;  // Remaining seconds
-
-  // Sum hours
-  //for (int i=0; i < numHours; i++) {
-  //  total += hour[getIndex(hourNum - i)];
-  //}
-
-  // Sum minutes
-  //for (int i=0; i < numMins; i++) {
-  //  total += min[getIndex(minNum - i)];
-  //}
+  int total = 0;
 
   // Sum seconds
   for (int i=0; i < numSecs; i++) {
@@ -240,6 +205,7 @@ float averageCounts(int numSecs) {
  * cpmTouSv: Convert cpm (counts per minute) to microSieverts/hour
  *****************************************************************************
  */
+
 float cpmTouSv(int numSecs) {
 
   // Conversion factor for SBM-20 tube
@@ -273,7 +239,6 @@ void HVOn (void) {
   if (!HVisOn) {
     digitalWrite(gatePin, HIGH);  // Turn on the MOSFET gate pin
     HVisOn = true;                // HV is now on
-    printf("HV = ON\n");        // FIXME: Log to file
   }
 }
 
@@ -286,8 +251,16 @@ void HVOff (void) {
   if (HVisOn) {
     digitalWrite(gatePin, LOW);   // Turn off the MOSFET gate pin
     HVisOn = false;               // HV is now off
-    printf("HV = OFF\n");       // FIXME: Log to file
   }
+}
+
+/*
+ * getHVOn: Queries whether HV is on.
+ *****************************************************************************
+ */
+
+bool getHVOn (void) {
+  return HVisOn;
 }
 
 /*
@@ -296,6 +269,7 @@ void HVOff (void) {
  *                seconds is the elapsed seconds since start
  *****************************************************************************
  */
+
 void geigerSetTime(unsigned long seconds) {
 
   int numHours = (seconds / 3600);                                      // Seconds to hours
@@ -316,17 +290,15 @@ void geigerSetTime(unsigned long seconds) {
  * geigerReset: Resets the Geiger counting variables.
  *****************************************************************************
  */
+
 int geigerReset(void) {
 
   // Initialize counting variables
-  //hourNum   = 0;
-  //minNum    = 0;
-  secNum    = 0;
+  secNum = 0;
 
   // Initialize the counting arrays
   for (int i=0; i < size; i++) {
     sec[i] = 0;
-    //min[i] = hour[i] = 0;
   }
 
   return 0;
@@ -336,9 +308,10 @@ int geigerReset(void) {
  * geigerSetup: Sets up the Geiger circuit.
  *****************************************************************************
  */
+
 int geigerSetup(void) {
 
-  wiringPiSetup(); 
+  wiringPiSetup();
 
   //turnHVOn = false;          // Do not turn HV on at this time
   HVisOn = false;            // HV is off by default
@@ -356,7 +329,7 @@ int geigerSetup(void) {
   pullUpDnControl(geigerPin, PUD_OFF);  // Pull up/down resistors off
 
   geigerReset();             // Reset all counting variables
-  
+
   return 0;
 }
 
@@ -376,9 +349,6 @@ void geigerStart() {
   pthread_t led_id;             // Set up the LED blink thread
   pthread_create(&led_id, &attr, blinkLED, NULL);
 
-  //pthread_t count_id;           // Set up the counting thread
-  //pthread_create(&count_id, &attr, count, NULL);
-
   geigerReset();                // Reset all counting variables
 
   pthread_attr_destroy(&attr);  // Clean up
@@ -392,5 +362,4 @@ void geigerStart() {
 void geigerStop() {
   keepRunning = false;          // Stop running threads
   HVOff();                      // Make sure HV is off
-  LEDOff();                     // Make sure LED is off
 }

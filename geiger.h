@@ -45,6 +45,7 @@ void countInterrupt (void);
 // HV routines
 void HVOn(void);
 void HVOff(void);
+bool getHVOn(void);
 
 // Setup routines
 void geigerSetTime(unsigned long seconds);

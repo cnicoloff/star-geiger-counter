@@ -51,6 +51,9 @@ static int buffer_seconds = 5;
 // Keep the main loop running forever unless CTRL-C
 static volatile bool keepRunning;
 
+static int geigerAlt = 40;
+static int deadBand = 10;
+
 /*
  * breakHandler: Captures CTRL-C so we can shut down cleanly.
  *****************************************************************************
@@ -65,45 +68,6 @@ void breakHandler(int s) {
 }
 
 /*
- * post: Perform a power on self-test.
- *****************************************************************************
- */
-
-void post (FILE *csvf, FILE *errf) {
-
-  // Check if counts.txt exists and is open
-  // Check if error log exists and is open
-
-  printf("POST starting...\n");
-  fprintf(errf, "%s entering post()\n", getTimeStamp());
-
-  altimeterSetup();          // Setup the altimeter
-  fprintf(errf, "%s     altimeterSetup()\n", getTimeStamp());
-
-  setQFF(42.29, 46, 1);
-  fprintf(errf, "%s     setQFF(42.29, 46, 1) = %f\n", getTimeStamp(), getQFF());
-
-  geigerSetup();             // Setup the Geiger circuit
-  fprintf(errf, "%s     geigerSetup()\n", getTimeStamp());
-  geigerStart();             // Start the Geiger circuit
-  fprintf(errf, "%s     geigerStart()\n", getTimeStamp());
-
-  HVOn();                    // FIXME: Base this on altitude
-  fprintf(errf, "%s     HVOn()\n", getTimeStamp());
-
-  geigerReset();             // Reset the Geiger counting variables
-  fprintf(errf, "%s     geigerReset()\n", getTimeStamp());
-
-  sleep(10);
-
-  HVOff();
-  fprintf(errf, "%s     HVOff()\n", getTimeStamp());
-
-  printf("POST complete!\n");
-  fprintf(errf, "%s exiting post()\n", getTimeStamp());
-}
-
-/*
  *****************************************************************************
  * main
  *****************************************************************************
@@ -112,13 +76,13 @@ void post (FILE *csvf, FILE *errf) {
 int main (void)
 {
 
-  bool postDone = false;      // POST has not been done yet
-  bool geigerOn = false;      // Geiger has not been turned on yet
+  int result = 0;             // Result of file operations
+  bool doPost = true;         // Do a POST when first started
   unsigned long start_time;   // Time the main loop started
-  float elapsed;              // Elapsed time since the main loop started
-  int curSec;                 // The current second we are addressing in the counts buffer
+  float elapsed = 0.0;        // Elapsed time since the main loop started
+  int curSec = 0;             // The current second we are addressing in the counts buffer
   int bufSec = 0;             // The current second we are addressing in the write buffer
-  int counts;                 // Number of counts in the last second
+  int counts = 0;             // Number of counts in the last second
 
 
   // Buffer a certain number of seconds of data to log to file
@@ -132,11 +96,11 @@ int main (void)
   // Define the output file
   FILE *csvf;
   char csvfname[] = "counts.txt";
-  csvf = fopen(csvfname, "awb");  // Attempt to open our output file, write+binary, append
+  csvf = fopen(csvfname, "aw");  // Attempt to open our output file, write+binary, append
 
   // If we failed to open the file, complain and exit
   if (csvf == NULL) {
-    fprintf(stderr, "Can't open output file!\n");
+    fprintf(stderr, "Can't open data file!\n");
     exit(1);
   }
 
@@ -146,7 +110,7 @@ int main (void)
   // Define the log file
   FILE *errf;
   char errfname[] = "error.txt";
-  errf = fopen(errfname, "aw");  // Attempt to open our log file, write, append
+  errf = fopen(errfname, "aw");  // Attempt to open our log file, write+binary, append
 
   // If we failed to open the file, complain and exit
   if (errf == NULL) {
@@ -159,13 +123,30 @@ int main (void)
 
   keepRunning = true;        // Run forever unless halted
 
+  fprintf(errf, "%s ****************************************\n", getTimeStamp());
+
+  altimeterSetup();          // Setup the altimeter
+  fprintf(errf, "%s altimeterSetup()\n", getTimeStamp());
+
+  setQFF(42.29, 46, 1);
+  fprintf(errf, "%s setQFF(42.29, 46, 1) = %f\n", getTimeStamp(), getQFF());
+
   sleep(1);                  // Sleep 1s just so we don't power everything on at once
+
+  geigerSetup();             // Setup the Geiger circuit
+  fprintf(errf, "%s geigerSetup()\n", getTimeStamp());
+  geigerStart();             // Start the Geiger circuit
+  fprintf(errf, "%s geigerStart()\n", getTimeStamp());
+
+  fprintf(errf, "%s entering main()\n", getTimeStamp());
 
   fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
   fprintf(stdout, "  Elapsed |    N |       T |     T1 |       P |       P1 |       P2 |        H\n");
   fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
 
-  fprintf(errf, "%s entering main()\n", getTimeStamp());
+  waitNextSec();                // Sleep until next second
+  curSec = 0;
+  start_time = getTimeMS();     // Save the start time
 
   // Loop forever or until CTRL-C
   while (keepRunning) {
@@ -192,57 +173,70 @@ int main (void)
       fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
     }
 
+    // Put data in our struct
     data[bufSec].elapsed = elapsed;
-    data[bufSec].counts = counts;
+
+    // If HV is on, record counts
+    if (getHVOn() == true) {
+      data[bufSec].counts = counts;
+    }
+    // If HV is not on, record an impossible result
+    else {
+      data[bufSec].counts = -1;
+    }
+
     data[bufSec].T = readTUncompensated();
     data[bufSec].P = readPUncompensated();
 
-    // Do some calculations
+    // Do some calculations and put them into the struct
     data[bufSec].T1 = calcFirstOrderT(data[bufSec].T);
     data[bufSec].P1 = calcFirstOrderP(data[bufSec].T, data[bufSec].P);
     data[bufSec].P2 = calcSecondOrderP(data[bufSec].T, data[bufSec].P);
     data[bufSec].altitude = calcAltitude(data[bufSec].P2, data[bufSec].T1);
 
-    if ((postDone == false) && (data[bufSec].altitude < 400)) {
-      post(csvf, errf);
-      postDone = true;
-    }
+    // If HV is not on
+    if (getHVOn() == false) {
+      // If we're above our threshold altitude, turn HV on
+      if (data[bufSec].altitude > geigerAlt) {
 
-    else if ((geigerOn == false) && (data[bufSec].altitude > 500)) {
-      postDone = true;
+        fprintf(csvf, "Elapsed, Counts, T (Raw), T1 (C), P (Raw), P1 (mbar), P2 (mbar), Altitude (m)\n");
 
-      fprintf(csvf, "Elapsed, Counts, T (Raw), T1 (C), P (Raw), P1 (mbar), P2 (mbar), Altitude (m)\n");
-
-      HVOn();                    // Turn the Geiger tube on
-      fprintf(errf, "%s HVOn()\n", getTimeStamp());
-
-      geigerReset();             // Reset the Geiger counting variables
-      fprintf(errf, "%s geigerReset()\n", getTimeStamp());
-
-      geigerOn = true;
-
-      waitNextSec();                // Sleep until next second
-      start_time = getTimeMS();     // Save the start time
-    }
-
-    else {
-
-      // Every so often, write to file
-      if (bufSec == (buffer_seconds - 1)) {
-        for (int i = 0; i < buffer_seconds; i++) {
-          fprintf(csvf, "%f, %d, %ld, %f, %ld, %f, %f, %f\n", data[i].elapsed, data[i].counts, data[i].T, data[i].T1, data[i].P, data[i].P1, data[i].P2, data[i].altitude);
-        }
+        HVOn();                    // Turn the Geiger tube on
+        fprintf(errf, "%s HVOn()\n", getTimeStamp());
       }
-
-      if ((curSec % 60 == 0) && (curSec != 0)) {
-        fprintf(errf, "%s main(): 60 seconds\n", getTimeStamp());
+      // If we're below our threshold altitude and we haven't done a POST, do a POST
+      else if ((doPost) && (data[bufSec].altitude < (geigerAlt - deadBand))) {
+        fprintf(errf, "%s POST()\n", getTimeStamp());
+        doPost = false;
       }
-
-      // Write some output
-      fprintf(stdout, "%9.3f | %4d | %7ld | %6.2f | %7ld | %7.3f | %7.3f | %8.2f\n", data[bufSec].elapsed, data[bufSec].counts, data[bufSec].T, data[bufSec].T1, data[bufSec].P, data[bufSec].P1, data[bufSec].P2, data[bufSec].altitude);
-
-      waitNextSec();  // Sleep one second
     }
+
+    // If HV is on and we're below our threshold altitude, turn HV off
+    else if ((getHVOn() == true) && (data[bufSec].altitude < (geigerAlt - deadBand))) {
+      HVOff();                   // Turn the Geiger tube off
+      fprintf(errf, "%s HVOff()\n", getTimeStamp());
+    }
+
+    // Every so often, write to file
+    if (bufSec == (buffer_seconds - 1)) {
+      for (int i = 0; i < buffer_seconds; i++) {
+        fprintf(csvf, "%f, %d, %ld, %f, %ld, %f, %f, %f\n", data[i].elapsed, data[i].counts, data[i].T, data[i].T1, data[i].P, data[i].P1, data[i].P2, data[i].altitude);
+      }
+    }
+
+    if ((curSec % 60 == 0) && (curSec != 0)) {
+      fprintf(errf, "%s main() 60 seconds\n", getTimeStamp());
+    }
+
+    // Write some output
+    fprintf(stdout, "%9.3f | %4d | %7ld | %6.2f | %7ld | %7.3f | %7.3f | %8.2f\n", data[bufSec].elapsed, data[bufSec].counts, data[bufSec].T, data[bufSec].T1, data[bufSec].P, data[bufSec].P1, data[bufSec].P2, data[bufSec].altitude);
+
+    waitNextSec();              // Sleep until next second
+  }
+
+  if (getHVOn() == true) {
+    HVOff();                    // Turn the Geiger tube off
+    fprintf(errf, "%s HVOff()\n", getTimeStamp());
   }
 
   fprintf(errf, "%s exiting main()\n", getTimeStamp());
@@ -254,7 +248,11 @@ int main (void)
   fprintf(errf, "%s Closed output file.\n", getTimeStamp());
 
   fprintf(errf, "%s Closing log file.\n", getTimeStamp());
-  fclose(errf);                 // Close the log file
+  fprintf(errf, "%s ****************************************\n", getTimeStamp());
+  result = fclose(errf);        // Close the log file
+  if (result != 0) {
+    printf("Error closing log file!\n");
+  }
 
   return EXIT_SUCCESS;          // Exit
 }

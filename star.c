@@ -145,7 +145,8 @@ int main (void)
   fprintf(stdout, "----------+------+---------+--------+---------+----------+----------+---------\n");
 
   waitNextSec();                // Sleep until next second
-  curSec = 0;
+  curSec = 0;                   // Start at zero seconds
+  geigerSetTime(curSec);        // Syncronize the Geiger counting loop
   start_time = getTimeMS();     // Save the start time
 
   // Loop forever or until CTRL-C

@@ -273,13 +273,13 @@ bool getHVOn (void) {
 void geigerSetTime(unsigned long seconds) {
 
   printf("seconds: %ld\n", seconds);
-  
+
   //int numHours = (seconds / 3600);                                      // Seconds to hours
   //int numMins = ((seconds - (numHours * 3600)) / 60);                   // Seconds to minutes
   //int numSecs = (seconds - (numMins * 60) - (numHours * 3600));         // Remaining seconds
 
   // We only care about the seconds buffer
-  numSecs = seconds % size;
+  int numSecs = seconds % size;
 
   // If it's not the same second, initialize the array element
   if (numSecs != secNum) {

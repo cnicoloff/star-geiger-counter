@@ -80,7 +80,7 @@ int main (void)
   bool doPost = true;         // Do a POST when first started
   unsigned long start_time;   // Time the main loop started
   float elapsed = 0.0;        // Elapsed time since the main loop started
-  int curSec = 0;             // The current second we are addressing in the counts buffer
+  unsigned long curSec = 0;   // The current second we are addressing in the counts buffer
   int bufSec = 0;             // The current second we are addressing in the write buffer
   int counts = 0;             // Number of counts in the last second
 
@@ -164,7 +164,7 @@ int main (void)
     geigerSetTime(curSec);
 
     // Wrap around the circular write buffer
-    bufSec = curSec % buffer_seconds;
+    bufSec = (int)(curSec % buffer_seconds);
 
     // Every so often, print the header to screen
     if ((curSec % 20 == 0) && (curSec != 0)) {

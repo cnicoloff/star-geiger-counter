@@ -82,14 +82,13 @@ void waitNanoSec(long interval) {
   struct timespec tim, tim2, rem;
 
   // Get the current time
-  clock_gettime(CLOCK_REALTIME, &tim);
+  clock_gettime(CLOCK_MONOTONIC, &tim);
 
   // Calculate how long to wait until the next interval
-  interval -= tim.tv_nsec;
-  interval &= 999999999;
+  interval = interval - tim.tv_nsec;
 
-  tim2.tv_sec = 0;          // zero seconds
-  tim2.tv_nsec = interval;  // some amount of nanoseconds
+  tim2.tv_sec = interval / 1000000000;    // seconds
+  tim2.tv_nsec = interval % 1000000000;   // nanoseconds
 
   // nanosleep() can be interrupted by the system
   // If it is interrupted, it returns -1 and places
@@ -108,10 +107,10 @@ void waitNextSec(void) {
   struct timespec tim, tim2, rem;
 
   // Get the current time
-  clock_gettime(CLOCK_REALTIME, &tim);
+  clock_gettime(CLOCK_MONOTONIC, &tim);
 
-  tim2.tv_nsec = 999999999 - tim.tv_nsec;
-  tim2.tv_sec = 0;         // zero seconds
+  tim2.tv_nsec = 999999999 - tim.tv_nsec; // nanoseconds
+  tim2.tv_sec = 0;                        // seconds
 
   nanosleep(&tim2, &rem);
 }

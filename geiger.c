@@ -279,10 +279,12 @@ void geigerSetTime(unsigned long seconds) {
   // We only care about the seconds buffer
   numSecs = numSecs % size;
 
+  // If it's not the same second, initialize the array element
   if (numSecs != secNum) {
-    secNum = numSecs;
-    sec[secNum] = 0;
+    sec[numSecs] = 0;
   }
+
+  secNum = numSecs;
 }
 
 

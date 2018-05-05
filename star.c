@@ -34,9 +34,15 @@
 #include "MS5607.h"
 
 #ifdef DEBUG
-  #define DEBUG_PRINT(...) do { fprintf(stderr, __VA_ARGS__); } while(false)
+  #define DEBUG_PRINT(...) do { fprintf(stdout, __VA_ARGS__); } while(false)
 #else
   #define DEBUG_PRINT(...) do { } while(false)
+#endif
+
+#ifdef DEBUG2
+  #define DEBUG2_PRINT(...) do { fprintf(stdout, __VA_ARGS__); } while(false)
+#else
+  #define DEBUG2_PRINT(...) do { } while(false)
 #endif
 
 // A structure to hold onto the last <buffer_seconds> seconds of data
@@ -115,6 +121,7 @@ int main (void)
 
   // If we failed to open the file, complain and exit
   if (csvf == NULL) {
+    DEBUG_PRINT("Can't open data file!\n");
     fprintf(stderr, "Can't open data file!\n");
     exit(1);
   }
@@ -131,6 +138,7 @@ int main (void)
 
   // If we failed to open the file, complain and exit
   if (errf == NULL) {
+    DEBUG_PRINT("Can't open log file!\n");
     fprintf(stderr, "Can't open log file!\n");
     exit(1);
   }
@@ -141,15 +149,18 @@ int main (void)
   // Run forever unless halted
   keepRunning = true;
 
+  DEBUG2_PRINT("%s ****************************************\n", getTimeStamp());
   fprintf(errf, "%s ****************************************\n", getTimeStamp());
 
   // Setup the altimeter
   altimeterSetup();
+  DEBUG2_PRINT("%s altimeterSetup()\n", getTimeStamp());
   fprintf(errf, "%s altimeterSetup()\n", getTimeStamp());
 
   // Get the altimeter calibration coefficients
   getAltimeterCalibration(c);
 
+  DEBUG2_PRINT("%s getAltimeterCalibration(): ", getTimeStamp());
   fprintf(errf, "%s getAltimeterCalibration(): ", getTimeStamp());
   for (int i = 0; i < 8; i++) {
     fprintf(errf, "%d = %d ", i, c[i]);
@@ -157,21 +168,25 @@ int main (void)
   fprintf(errf, "\n");
 
   // Calculate the QFF value (for low altitudes)
-  setQFF(42.29, 46, 1);         
+  setQFF(42.29, 46, 1);
   fprintf(errf, "%s setQFF(42.29, 46, 1): %f\n", getTimeStamp(), getQFF());
+  DEBUG2_PRINT("%s setQFF(42.29, 46, 1): %f\n", getTimeStamp(), getQFF());
 
   // Sleep 1s so we don't power everything on at once
-  sleep(1);                     
+  sleep(1);
 
   // Setup the Geiger circuit
-  geigerSetup();                
+  geigerSetup();
+  DEBUG2_PRINT("%s geigerSetup()\n", getTimeStamp());
   fprintf(errf, "%s geigerSetup()\n", getTimeStamp());
-  
+
   // Start the Geiger circuit
-  geigerStart();                
+  geigerStart();
   fprintf(errf, "%s geigerStart()\n", getTimeStamp());
+  DEBUG2_PRINT("%s geigerStart()\n", getTimeStamp());
 
   fprintf(errf, "%s entering main()\n", getTimeStamp());
+  DEBUG2_PRINT("%s entering main()\n", getTimeStamp());
 
   waitNextSec();                // Sleep until next second
   start_time = getTimeMS();     // Save the start time
@@ -195,15 +210,17 @@ int main (void)
 
     // Advance the count timer
     setSecNum(curSec);
+    DEBUG2_PRINT("setSecNum(%ld)\n", curSec);
 
     // Wrap around the circular write buffer
     bufSec = (int)(curSec % buffer_seconds);
+    DEBUG2_PRINT("bufSec = %d\n", bufSec);
 
     // Every so often, print the header to screen
     if (curSec % 20 == 0) {
-      fprintf(stdout, "-----+-----------+------+---------+--------+---------+----------+----------+----------\n");
-      fprintf(stdout, " Buf |   Elapsed |    N |       T |     T1 |       P |       P1 |       P2 |        H\n");
-      fprintf(stdout, "-----+-----------+------+---------+--------+---------+----------+----------+----------\n");
+      DEBUG_PRINT("-----+-----------+------+---------+--------+---------+----------+----------+----------\n");
+      DEBUG_PRINT(" Buf |   Elapsed |    N |       T |     T1 |       P |       P1 |       P2 |        H\n");
+      DEBUG_PRINT("-----+-----------+------+---------+--------+---------+----------+----------+----------\n");
     }
 
     // Put data into our struct
@@ -237,10 +254,12 @@ int main (void)
 
         HVOn();                    // Turn the Geiger tube on
         fprintf(errf, "%s HVOn()\n", getTimeStamp());
+        DEBUG2_PRINT("%s HVOn()\n", getTimeStamp());
       }
       // If we're below our threshold altitude and we haven't done a POST, do a POST
       else if ((doPost) && (data[bufSec].altitude < (geigerAlt - deadBand))) {
         fprintf(errf, "%s POST()\n", getTimeStamp());
+        DEBUG2_PRINT("%s POST()\n", getTimeStamp());
         doPost = false;
       }
     }
@@ -249,6 +268,7 @@ int main (void)
     else if ((getHVOn() == true) && (data[bufSec].altitude < (geigerAlt - deadBand))) {
       HVOff();                   // Turn the Geiger tube off
       fprintf(errf, "%s HVOff()\n", getTimeStamp());
+      DEBUG2_PRINT("%s HVOff()\n", getTimeStamp());
     }
 
     // Every so often, write to file
@@ -261,10 +281,11 @@ int main (void)
     // Every so often, let the log file know we're alive
     if ((curSec % 60 == 0) && (curSec != 0)) {
       fprintf(errf, "%s main() 60 seconds\n", getTimeStamp());
+      DEBUG2_PRINT("%s main() 60 seconds\n", getTimeStamp());
     }
 
     // Write some output to the screen
-    fprintf(stdout, "  %2d | %9.3f | %4d | %7ld | %6.2f | %7ld | %8.3f | %8.3f | %8.2f\n", getSecNum(), data[bufSec].elapsed, data[bufSec].counts, data[bufSec].T, data[bufSec].T1, data[bufSec].P, data[bufSec].P1, data[bufSec].P2, data[bufSec].altitude);
+    DEBUG_PRINT("  %2d | %9.3f | %4d | %7ld | %6.2f | %7ld | %8.3f | %8.3f | %8.2f\n", getSecNum(), data[bufSec].elapsed, data[bufSec].counts, data[bufSec].T, data[bufSec].T1, data[bufSec].P, data[bufSec].P1, data[bufSec].P2, data[bufSec].altitude);
 
     waitNextSec();              // Sleep until next second
   }
@@ -273,13 +294,16 @@ int main (void)
   if (getHVOn() == true) {
     HVOff();
     fprintf(errf, "%s HVOff()\n", getTimeStamp());
+    DEBUG2_PRINT("%s HVOff()\n", getTimeStamp());
   }
 
   fprintf(errf, "%s exiting main()\n", getTimeStamp());
+  DEBUG2_PRINT("%s exiting main()\n", getTimeStamp());
 
   // Stop the Geiger circuit
   geigerStop();
   fprintf(errf, "%s geigerStop()\n", getTimeStamp());
+  DEBUG2_PRINT("%s geigerStop()\n", getTimeStamp());
 
   // Close the output file
   fclose(csvf);

@@ -36,7 +36,7 @@
 unsigned long long getTimeMS(void) {
   struct timespec tim;
 
-  clock_gettime(CLOCK_MONOTONIC, &tim);
+  clock_gettime(CLOCK_REALTIME, &tim);
 
   /* seconds, converted to ms */
   unsigned long ms = tim.tv_sec * 1000;

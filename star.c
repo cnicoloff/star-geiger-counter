@@ -55,7 +55,7 @@ struct data_second {
 static int buffer_seconds = 5;
 
 // Keep the main loop running forever unless CTRL-C
-static volatile bool keepRunning;
+volatile bool keepRunning;
 
 // FIXME: Change these before launch!
 // Minimum altitude before Geiger circuit turns on
@@ -89,11 +89,12 @@ int main (void)
 
   int result = 0;             // Result of file operations
   bool doPost = true;         // Do a POST when first started
-  long long start_time;   // Time the main loop started
+  long long start_time;       // Time the main loop started
   double elapsed = 0.0;       // Elapsed time since the main loop started
   unsigned long curSec = 0;   // The current second we are addressing in the counts buffer
   int bufSec = 0;             // The current second we are addressing in the write buffer
   int counts = 0;             // Number of counts in the last second
+  int c[8];                   // Altimeter calibration coefficients
 
 
   // Buffer a certain number of seconds of data
@@ -108,7 +109,9 @@ int main (void)
   // Define the output file
   FILE *csvf;
   char csvfname[] = "counts.txt";
-  csvf = fopen(csvfname, "aw");  // Attempt to open our output file, write+append
+  
+  // Attempt to open our output file, write+append
+  csvf = fopen(csvfname, "aw");
 
   // If we failed to open the file, complain and exit
   if (csvf == NULL) {
@@ -122,7 +125,9 @@ int main (void)
   // Define the log file
   FILE *errf;
   char errfname[] = "error.txt";
-  errf = fopen(errfname, "aw");  // Attempt to open our log file, write+append
+  
+  // Attempt to open our log file, write+append
+  errf = fopen(errfname, "aw");
 
   // If we failed to open the file, complain and exit
   if (errf == NULL) {
@@ -133,14 +138,16 @@ int main (void)
   // Do not buffer, write directly to disk!
   setbuf(errf, NULL);
 
-  keepRunning = true;        // Run forever unless halted
+  // Run forever unless halted
+  keepRunning = true;
 
   fprintf(errf, "%s ****************************************\n", getTimeStamp());
 
-  altimeterSetup();          // Setup the altimeter
+  // Setup the altimeter
+  altimeterSetup();
   fprintf(errf, "%s altimeterSetup()\n", getTimeStamp());
-  int c[8];
 
+  // Get the altimeter calibration coefficients
   getAltimeterCalibration(c);
 
   fprintf(errf, "%s getAltimeterCalibration(): ", getTimeStamp());
@@ -149,14 +156,19 @@ int main (void)
   }
   fprintf(errf, "\n");
 
-  setQFF(42.29, 46, 1);
+  // Calculate the QFF value (for low altitudes)
+  setQFF(42.29, 46, 1);         
   fprintf(errf, "%s setQFF(42.29, 46, 1): %f\n", getTimeStamp(), getQFF());
 
-  sleep(1);                     // Sleep 1s so we don't power everything on at once
+  // Sleep 1s so we don't power everything on at once
+  sleep(1);                     
 
-  geigerSetup();                // Setup the Geiger circuit
+  // Setup the Geiger circuit
+  geigerSetup();                
   fprintf(errf, "%s geigerSetup()\n", getTimeStamp());
-  geigerStart();                // Start the Geiger circuit
+  
+  // Start the Geiger circuit
+  geigerStart();                
   fprintf(errf, "%s geigerStart()\n", getTimeStamp());
 
   fprintf(errf, "%s entering main()\n", getTimeStamp());
@@ -164,7 +176,7 @@ int main (void)
   waitNextSec();                // Sleep until next second
   start_time = getTimeMS();     // Save the start time
   curSec = 0;                   // Start at zero seconds
-  geigerReset();
+  geigerReset();                // Reset the Geiger circuit
 
   // Loop forever or until CTRL-C
   while (keepRunning) {
@@ -177,8 +189,7 @@ int main (void)
     counts = sumCounts(1);
 
     // Whole number of current second
-    curSec = (elapsed * 1000);
-    curSec = curSec / 1000;
+    curSec = elapsed;
 
     DEBUG_PRINT("main()\n");
 
@@ -258,25 +269,30 @@ int main (void)
     waitNextSec();              // Sleep until next second
   }
 
+  // Turn the Geiger tube off
   if (getHVOn() == true) {
-    HVOff();                    // Turn the Geiger tube off
+    HVOff();
     fprintf(errf, "%s HVOff()\n", getTimeStamp());
   }
 
   fprintf(errf, "%s exiting main()\n", getTimeStamp());
 
-  geigerStop();                 // Stop the Geiger circuit
+  // Stop the Geiger circuit
+  geigerStop();
   fprintf(errf, "%s geigerStop()\n", getTimeStamp());
 
-  fclose(csvf);                 // Close the output file
+  // Close the output file
+  fclose(csvf);
   fprintf(errf, "%s Closed output file.\n", getTimeStamp());
 
+  // Close the log file
   fprintf(errf, "%s Closing log file.\n", getTimeStamp());
   fprintf(errf, "%s ****************************************\n", getTimeStamp());
-  result = fclose(errf);        // Close the log file
+  result = fclose(errf);
+  
   if (result != 0) {
     printf("Error closing log file!\n");
   }
 
-  return EXIT_SUCCESS;          // Exit
+  return EXIT_SUCCESS;
 }

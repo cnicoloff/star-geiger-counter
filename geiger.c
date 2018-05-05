@@ -42,16 +42,15 @@
   #define DEBUG_PRINT(...) do { } while (false)
 #endif
 
-int secNum;            // Which index in the seconds array
-int sec[60];           // Array of collected counts per second
+volatile int secNum;            // Which index in the seconds array
+volatile int sec[60];           // Array of collected counts per second
 
-int LEDTime;           // How much time is left to light LED
-bool LEDisOn;          // Is LED on?
-bool keepRunning;      // Signals when to exit
-bool turnHVOn;         // Signals when to turn the HV on
-bool HVisOn;           // Is HV on?
+volatile int LEDTime;           // How much time is left to light LED
+volatile bool LEDisOn;          // Is LED on?
+volatile bool keepRunning;      // Signals when to exit
+volatile bool HVisOn;           // Is HV on?
 
-pthread_mutex_t lock;
+pthread_mutex_t lock;           // Prevent a race condition involving secNum read/write
 
 static int size = 60;  // Array size
 

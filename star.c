@@ -41,7 +41,7 @@
 
 // A structure to hold onto the last <buffer_seconds> seconds of data
 struct data_second {
-   float elapsed;
+   double elapsed;
    int counts;
    unsigned long T;
    double T1;

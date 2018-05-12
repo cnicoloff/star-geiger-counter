@@ -66,11 +66,11 @@ static int buffer_seconds = 5;
 volatile bool keepRunning;
 
 // Minimum altitude before Geiger circuit turns on
-static int geigerAlt = 100;
+volatile int geigerAlt = 100;
 
 // The dead band keeps small altitude fluctuations from
 // turning the Geiger circuit on and off quickly
-static int deadBand = 10;
+volatile int deadBand = 10;
 
 
 /*
@@ -94,25 +94,26 @@ void breakHandler(int s) {
 
 int main (int argc, char *argv[]) {
 
-  int result = 0;             // Result of file operations
-  bool doPost = true;         // Do a POST when first started
-  long long start_time;       // Time the main loop started
-  double elapsed = 0.0;       // Elapsed time since the main loop started
-  unsigned long curSec = 0;   // The current second we are addressing in the counts buffer
-  int bufSec = 0;             // The current second we are addressing in the write buffer
-  int counts = 0;             // Number of counts in the last second
-  int deadCounts = 0;         // Number of dead time counts in the last second
-  double deadTime = 0;        // Amount of dead time in the last second
-  int c[8];                   // Altimeter calibration coefficients
-  int opt;                    // Command line options
-  char ts[40];                // Timestamp
+  int result = 0;                   // Result of file operations
+  bool doPost = true;               // Do a POST when first started
+  unsigned long long start_time;    // Time the main loop started
+  double elapsed;                   // Elapsed time since the main loop started
+  unsigned long curSec;             // The current second we are addressing in the counts buffer
+  int bufSec;                       // The current second we are addressing in the write buffer
+  int counts;                       // Number of counts in the last second
+  int deadCounts;                   // Number of dead time counts in the last second
+  double deadTime;                  // Amount of dead time in the last second
+  int c[8];                         // Altimeter calibration coefficients
+  int opt;                          // Command line options
+  char ts[40];                      // Timestamp
 
   // Parse simple command line options
-  while ((opt = getopt(argc, argv, "t")) != -1) {
+  while ((opt = getopt(argc, argv, "bth")) != -1) {
     switch (opt) {
-    case 't': geigerAlt = 0; break;  // Bypass the altitude limitations
+    case 'b': geigerAlt = 0; deadBand = 0; break;     // Bypass the altitude limitations
+    case 't': geigerAlt = 50; deadBand = 3; break;    // Tethered launch parameters
     default:
-      fprintf(stderr, "Usage: %s [-t]\n", argv[0]);
+      fprintf(stderr, "Usage: %s [-bth]\n", argv[0]);
       exit(EXIT_FAILURE);
     }
   }
@@ -176,9 +177,14 @@ int main (int argc, char *argv[]) {
   fprintf(errf, "%s ****************************************\n", getTimeStamp());
 
   // Setup the altimeter
-  altimeterSetup();
-  DEBUG2_PRINT("%s altimeterSetup()\n", getTimeStamp());
-  fprintf(errf, "%s altimeterSetup()\n", getTimeStamp());
+  if (altimeterSetup() < 0) {
+    fprintf(errf, "Unable to set up altimeter!\n");
+    exit(EXIT_FAILURE);
+  }
+  else {
+    DEBUG2_PRINT("%s altimeterSetup()\n", getTimeStamp());
+    fprintf(errf, "%s altimeterSetup()\n", getTimeStamp());
+  }
 
   // Get the altimeter calibration coefficients
   getAltimeterCalibration(c);
@@ -195,7 +201,11 @@ int main (int argc, char *argv[]) {
   fprintf(errf, "%s setQFF(42.29, 46, 1): %f\n", getTimeStamp(), getQFF());
   DEBUG2_PRINT("%s setQFF(42.29, 46, 1): %f\n", getTimeStamp(), getQFF());
 
-  // Sleep 2s so we don't power everything on at once
+  fprintf(errf, "%s HV altitude = %d, dead band = %d\n", getTimeStamp(), geigerAlt, deadBand);
+  fprintf(stdout, "%s HV altitude = %d, dead band = %d\n", getTimeStamp(), geigerAlt, deadBand);
+  DEBUG2_PRINT("%s HV altitude = %d, dead band = %d\n", getTimeStamp(), geigerAlt, deadBand);
+
+  // Sleep so we don't power everything on at once
   sleep(2);
 
   // Setup the Geiger circuit
@@ -218,7 +228,6 @@ int main (int argc, char *argv[]) {
 
   // Loop forever or until CTRL-C
   while (keepRunning) {
-
     // Elapsed time since start
     elapsed = (getTimeMS() - start_time) / 1000.0;
     DEBUG_PRINT("getTimeMS() %lld, start_time %lld, elapsed %f\n", getTimeMS(), start_time, elapsed);
@@ -231,9 +240,11 @@ int main (int argc, char *argv[]) {
 
     // Get the dead time counts from the last second
     deadCounts = getDeadCounts(curSec);
+    DEBUG_PRINT("counts = %d, deadTime = %f, deadCounts = %d\n", counts, deadTime, deadCounts);
 
     // Whole number of current second
     curSec = elapsed;
+    DEBUG_PRINT("curSec = %ld\n", curSec);
 
     DEBUG_PRINT("main()\n");
 
@@ -244,13 +255,6 @@ int main (int argc, char *argv[]) {
     // Wrap around the circular write buffer
     bufSec = (int)(curSec % buffer_seconds);
     DEBUG2_PRINT("bufSec = %d\n", bufSec);
-
-    // Every so often, print the header to screen
-    if (curSec % 20 == 0) {
-      printf("-----+-----------+------+---------+--------+---------+----------+----------+----------+----------+-----\n");
-      printf(" Buf |   Elapsed |    N |       T |     T1 |       P |       P1 |       P2 |        H | Deadtime |  DTC \n");
-      printf("-----+-----------+------+---------+--------+---------+----------+----------+----------+----------+-----\n");
-    }
 
     // Put data into our struct
     data[bufSec].elapsed = elapsed;
@@ -291,6 +295,7 @@ int main (int argc, char *argv[]) {
       }
       // If we're below our threshold altitude and we haven't done a POST, do a POST
       else if ((doPost) && (data[bufSec].altitude < (geigerAlt - deadBand))) {
+        fprintf(stdout, "%s entering POST(), altitude = %f\n", getTimeStamp(), data[bufSec].altitude);
         fprintf(errf, "%s entering POST(), altitude = %f\n", getTimeStamp(), data[bufSec].altitude);
         DEBUG2_PRINT("%s entering POST(), altitude = %f\n", getTimeStamp(), data[bufSec].altitude);
 
@@ -307,6 +312,7 @@ int main (int argc, char *argv[]) {
         curSec = 0;                   // Start at zero seconds
         geigerReset();                // Reset the Geiger circuit
         doPost = false;
+        fprintf(stdout, "%s exiting POST()\n", getTimeStamp());
         fprintf(errf, "%s exiting POST()\n", getTimeStamp());
         DEBUG2_PRINT("%s exiting POST()\n", getTimeStamp());
       }
@@ -328,8 +334,15 @@ int main (int argc, char *argv[]) {
 
     // Every so often, let the log file know we're alive
     if ((curSec % 60 == 0) && (curSec != 0)) {
-      fprintf(errf, "%s main() 60 seconds\n", getTimeStamp());
-      DEBUG2_PRINT("%s main() 60 seconds\n", getTimeStamp());
+      fprintf(errf, "%s main() 60 seconds, altitude = %f\n", getTimeStamp(), data[bufSec].altitude);
+      DEBUG2_PRINT("%s main() 60 seconds, altitude = %f\n", getTimeStamp(), data[bufSec].altitude);
+    }
+
+    // Every so often, print the header to screen
+    if (curSec % 20 == 0) {
+      printf("-----+-----------+------+---------+--------+---------+----------+----------+----------+----------+-----\n");
+      printf(" Buf |   Elapsed |    N |       T |     T1 |       P |       P1 |       P2 |        H | Deadtime |  DTC \n");
+      printf("-----+-----------+------+---------+--------+---------+----------+----------+----------+----------+-----\n");
     }
 
     // Write some output to the screen

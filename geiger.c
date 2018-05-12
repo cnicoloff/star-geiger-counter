@@ -104,12 +104,11 @@ int getSecNum(void) {
  */
 
 void setSecNum(unsigned long seconds) {
-
   int numSecs = 0;
 
+  // Prevent other threads from clobbering this value
   pthread_mutex_lock(&lock_count);
   pthread_mutex_lock(&lock_sec);
-  pthread_mutex_lock(&lock_led);
 
   DEBUG2_PRINT("    setSecNum(%ld)\n", seconds);
   DEBUG2_PRINT("        seconds: %ld\n", seconds);
@@ -125,16 +124,20 @@ void setSecNum(unsigned long seconds) {
     deadCounts[numSecs] = 0;
     // This is to prevent huge values of LEDTime when
     // counting at high rates
-    if (LEDTime) {
+    if (LEDTime > 0) {
+      // Prevent other threads from clobbering this value
+      pthread_mutex_lock(&lock_led);
       LEDTime = flashTime;
+      pthread_mutex_unlock(&lock_led);
     }
   }
   secNum = numSecs;
+
   DEBUG2_PRINT("        secNum: %d\n", secNum);
 
-  pthread_mutex_unlock(&lock_led);
   pthread_mutex_unlock(&lock_sec);
   pthread_mutex_unlock(&lock_count);
+
 }
 
 /*
@@ -144,17 +147,20 @@ void setSecNum(unsigned long seconds) {
 
 void countInterrupt(void) {
   struct timespec tim1, tim2;
+  int numSec;
   double dt_s;
 
   // Prevent other threads from clobbering this value
   pthread_mutex_lock(&lock_count);
+
+  numSec = getSecNum();
 
   // Waiting for the falling edge
   if (t1 == 0) {
     clock_gettime(CLOCK_MONOTONIC, &tim1);
 
     // Increment the counter
-    sec[getSecNum()]++;
+    sec[numSec]++;
 
     // Prevent other threads from clobbering this value
     pthread_mutex_lock(&lock_led);
@@ -178,14 +184,14 @@ void countInterrupt(void) {
     // The time distance was positive
     if (dt_s > 0) {
 
-      // The time distance was realistic.  600us is around
-      // three times the dead time of the tube
-      if (dt_s <= 0.000600) {
+      // The time distance was realistic.  800us is around
+      // four times the dead time of the tube
+      if (dt_s <= 0.000800) {
 
         // Tally the dead time
-        deadTime[getSecNum()] += dt_s;
-        deadCounts[getSecNum()] += 1;
-        DEBUG_PRINT("%lf\n", dt_s);
+        deadCounts[numSec] += 1;
+        deadTime[numSec] += dt_s;
+        DEBUG_PRINT("    getSecNum() = %d: %lf %lf\n", numSec, dt_s, deadTime[numSec]);
 
         // Reset and wait for a falling edge
         t1 = 0;
@@ -220,11 +226,12 @@ void countInterrupt(void) {
 
 void LEDOn(void) {
 
-  digitalWrite(ledPin, HIGH); // Turn on the LED
-
   // Prevent other threads from clobbering this value
   pthread_mutex_lock(&lock_led);
+
+  digitalWrite(ledPin, HIGH); // Turn on the LED
   LEDisOn = true;             // The LED is now on
+
   pthread_mutex_unlock(&lock_led);
 }
 
@@ -235,12 +242,13 @@ void LEDOn(void) {
 
 void LEDOff(void) {
 
-  digitalWrite(ledPin, LOW); // Turn off the LED
-
   // Prevent other threads from clobbering this value
   pthread_mutex_lock(&lock_led);
+
+  digitalWrite(ledPin, LOW); // Turn off the LED
   LEDisOn = false;           // The LED is now off
   LEDTime = 0;               // Set remaining blink time to zero
+
   pthread_mutex_unlock(&lock_led);
 }
 
@@ -319,7 +327,7 @@ int getIndex(int numIndex) {
  */
 
 double getDeadTime(int numSecs) {
-  int ret;
+  double ret;
 
   // Prevent other threads from clobbering this value
   pthread_mutex_lock(&lock_count);
@@ -428,11 +436,12 @@ float cpmTouSv(int numSecs) {
 
 void HVOn (void) {
   if (!HVisOn) {
-    digitalWrite(gatePin, HIGH);  // Turn on the MOSFET gate pin
-
     // Prevent other threads from clobbering this value
     pthread_mutex_lock(&lock_hv);
+
+    digitalWrite(gatePin, HIGH);  // Turn on the MOSFET gate pin
     HVisOn = true;                // HV is now on
+
     pthread_mutex_unlock(&lock_hv);
   }
 }
@@ -444,11 +453,12 @@ void HVOn (void) {
 
 void HVOff (void) {
   if (HVisOn) {
-    digitalWrite(gatePin, LOW);   // Turn off the MOSFET gate pin
-
     // Prevent other threads from clobbering this value
     pthread_mutex_lock(&lock_hv);
+
+    digitalWrite(gatePin, LOW);   // Turn off the MOSFET gate pin
     HVisOn = false;               // HV is now off
+
     pthread_mutex_unlock(&lock_hv);
   }
 }

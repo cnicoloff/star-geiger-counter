@@ -58,20 +58,24 @@ unsigned long long getTimeMS(void) {
  */
 
 const char * getTimeStamp(void) {
-  double ms = getTimeMS() / 1000000.0;
-  unsigned int h, m;
-  unsigned long s = ms;
+  unsigned long ms = getTimeMS();
+  unsigned int s;
+  static char t[12] = {0};
   static char ts[12] = {0};
+  struct tm tstruct;
 
-  // Calculate hours
-  h = s / 3600;
-  s %= 3600;
-  // Calculate minutes
-  m = s / 60;
-  s %= 60;
+  // Get the current time (UTC)
+  time_t now = time(0);
+  // Convert to the local time
+  tstruct = *localtime(&now);
 
-  sprintf(ts, "[%2d:%2d:%2ld.%.3f]", h, m, s, ms);
+  // Calculate seconds
+  s = ms / 1000;
+  ms -= s * 1000;
 
+  strftime(t, sizeof(t), "%H:%M:%S", &tstruct);
+
+  sprintf(ts, "[%s.%03ld]", t, ms);
   return ts;
 }
 

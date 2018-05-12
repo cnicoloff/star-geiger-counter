@@ -62,6 +62,9 @@ struct data_second {
 // Buffer five seconds before writing to file
 static int buffer_seconds = 5;
 
+// Track interrupt signals
+volatile int sigReceived = 0;
+
 // Keep the main loop running forever unless CTRL-C
 volatile bool keepRunning;
 
@@ -74,13 +77,14 @@ volatile int deadBand = 10;
 
 
 /*
- * breakHandler: Captures CTRL-C so we can shut down cleanly.
+ * breakHandler: Captures interrupts so we can shut down cleanly.
  *****************************************************************************
  */
 
 void breakHandler(int s) {
 
-  printf("%s CTRL-C, exiting.\n", getTimeStamp());
+  // Record which signal we received
+  sigReceived = s;
 
   // Tell all loops and threads to exit
   keepRunning = false;
@@ -122,10 +126,15 @@ int main (int argc, char *argv[]) {
   // so we're not saving to disk every second
   struct data_second data[buffer_seconds];
 
-  // Set up a signal handler for CTRL-C
+  // Set up a signal handler to terminate cleanly
   struct sigaction act;
+  memset(&act, 0, sizeof(act));
+
   act.sa_handler = breakHandler;
-  sigaction(SIGINT, &act, NULL);
+  sigaction(SIGINT, &act, NULL);   // CTRL-C and kill -2
+  sigaction(SIGQUIT, &act, NULL);  // kill -3
+  sigaction(SIGABRT, &act, NULL);  // kill -6
+  sigaction(SIGTERM, &act, NULL);  // kill -15
 
   // Initialize random number generator
   srand(time(NULL));
@@ -349,6 +358,19 @@ int main (int argc, char *argv[]) {
     printf("  %2d | %9.3lf | %4d | %7ld | %6.2lf | %7ld | %8.3lf | %8.3lf | %8.2f | %1.6lf | %4d\n", getSecNum(), data[bufSec].elapsed, data[bufSec].counts, data[bufSec].T, data[bufSec].T1, data[bufSec].P, data[bufSec].P1, data[bufSec].P2, data[bufSec].altitude, deadTime, deadCounts);
 
     waitNextSec();              // Sleep until next second
+  }
+
+  // We received a signal to terminate
+  if (sigReceived > 0) {
+    DEBUG2_PRINT(errf, "%s Signal %d received, exiting gracefully.\n", getTimeStamp(), sigReceived);
+    switch (sigReceived) {
+      case  2: fprintf(errf, "%s SIGINT received, exiting gracefully.\n", getTimeStamp()); break;
+      case  3: fprintf(errf, "%s SIGQUIT received, exiting gracefully.\n", getTimeStamp()); break;
+      case  6: fprintf(errf, "%s SIGABRT received, exiting gracefully.\n", getTimeStamp()); break;
+      case 15: fprintf(errf, "%s SIGTERM received, exiting gracefully.\n", getTimeStamp()); break;
+      default:
+        fprintf(errf, "%s unknown signal received, exiting with some confusion.\n", getTimeStamp()); break;
+    }
   }
 
   // Turn the Geiger tube off

@@ -162,6 +162,10 @@ int main (int argc, char *argv[]) {
   // Do not buffer, write directly to disk!
   setbuf(csvf, NULL);
 
+  // Write header to file
+  fprintf(csvf, "%s\n", getTimeStamp());
+  fprintf(csvf, "Elapsed, Counts, T (Raw), T1 (C), P (Raw), P1 (mbar), P2 (mbar), Altitude (m), Dead Time (s), Dead Time Counts\n");
+
   // Define the log file
   FILE *errf;
   char errfname[100];
@@ -278,6 +282,8 @@ int main (int argc, char *argv[]) {
     // If HV is not on, record an impossible result
     else {
       data[bufSec].counts = -1;
+      data[bufSec].deadTime = 0.0;
+      data[bufSec].deadCounts = -1;
     }
 
     // Read the raw T and P values from the altimeter
@@ -294,9 +300,6 @@ int main (int argc, char *argv[]) {
     if (getHVOn() == false) {
       // If we're above our threshold altitude, turn HV on
       if (data[bufSec].altitude > geigerAlt) {
-
-        fprintf(csvf, "Elapsed, Counts, T (Raw), T1 (C), P (Raw), P1 (mbar), P2 (mbar), Altitude (m), Dead Time (s), Dead Time Counts\n");
-
         HVOn();                    // Turn the Geiger tube on
         fprintf(errf, "%s HVOn(), altitude = %f\n", getTimeStamp(), data[bufSec].altitude);
         DEBUG2_PRINT("%s HVOn(), altitude = %f\n", getTimeStamp(), data[bufSec].altitude);

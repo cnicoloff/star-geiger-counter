@@ -211,7 +211,7 @@ int main (int argc, char *argv[]) {
   fprintf(errf, "\n");
 
   // Calculate the QFF value (for low altitudes)
-  setQFF(42.29, 46, 1);
+  setQFF(43.06, 100, 1);
   fprintf(errf, "%s setQFF(42.29, 46, 1): %f\n", getTimeStamp(), getQFF());
   DEBUG2_PRINT("%s setQFF(42.29, 46, 1): %f\n", getTimeStamp(), getQFF());
 

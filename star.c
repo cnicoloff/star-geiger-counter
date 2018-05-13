@@ -115,7 +115,7 @@ int main (int argc, char *argv[]) {
   while ((opt = getopt(argc, argv, "blt")) != -1) {
     switch (opt) {
     case 'b': geigerAlt = 0; deadBand = 0; break;       // Bypass the altitude limitations
-    case 'l': geigerAlt = 100; deadBand = 10; break;    // Launch day parameters
+    case 'l': geigerAlt = 175; deadBand = 10; break;    // Launch day parameters
     case 't': geigerAlt = 50; deadBand = 3; break;      // Tethered launch parameters
     default:
       fprintf(stderr, "Usage: %s [-blt]\n", argv[0]);

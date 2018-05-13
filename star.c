@@ -69,7 +69,7 @@ volatile int sigReceived = 0;
 volatile bool keepRunning;
 
 // Minimum altitude before Geiger circuit turns on
-volatile int geigerAlt = 100;
+volatile int geigerAlt = 175;
 
 // The dead band keeps small altitude fluctuations from
 // turning the Geiger circuit on and off quickly

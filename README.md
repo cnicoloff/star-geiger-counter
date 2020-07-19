@@ -1,7 +1,7 @@
 # star-geiger-counter
-Raspberry Pi software for the STAR Geiger counter.  
+Raspberry Pi software for the STAR Geiger counter.  The official website is at <https://cnicolof.wixsite.com/star/> 
 
-The STAR Geiger counter was built by Catherine Nicoloff of Wellesley College for ASTR 202, Hands-on Planetary Exploration.  It was a payload component of a successful high altitude balloon launch on May 13, 2018.
+The STAR Geiger counter was built by Catherine Nicoloff of Wellesley College for ASTR 202, Hands-on Planetary Exploration.  It was a payload component of a successful high altitude balloon launch on May 13, 2018, reaching 27,581 meters (90,489 feet) and recording atmospheric radiation data for the entire flight.
 
 This is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
